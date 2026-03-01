@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Docker App</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; }
+        input { padding: 8px; margin-right: 8px; width: 300px; }
+        button { padding: 8px 16px; cursor: pointer; }
+        ul { list-style: none; padding: 0; }
+        li { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #ddd; }
+    </style>
+</head>
+<body>
+    <h1>Items</h1>
+
+    <form id="form">
+        <input type="text" id="nameInput" placeholder="Neuer Eintrag..." required>
+        <button type="submit">Hinzufügen</button>
+    </form>
+
+    <ul id="list"></ul>
+
+    <script>
+        const API = 'http://localhost:3000';
+
+        async function loadItems() {
+            const res = await fetch(`${API}/items`);
+            const items = await res.json();
+            document.getElementById('list').innerHTML = items
+                .map(i => `<li>${i.name} <button onclick="deleteItem(${i.id})">Löschen</button></li>`)
+                .join('');
+        }
+
+        document.getElementById('form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const name = document.getElementById('nameInput').value;
+            await fetch(`${API}/items`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            });
+            document.getElementById('nameInput').value = '';
+            loadItems();
+        });
+
+        async function deleteItem(id) {
+            await fetch(`${API}/items/${id}`, { method: 'DELETE' });
+            loadItems();
+        }
+
+        loadItems();
+    </script>
+</body>
+</html>
