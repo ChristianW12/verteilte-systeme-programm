@@ -1,5 +1,9 @@
 services:
 
+  redis:
+    image: redis:7-alpine
+    restart: always
+
   database:
     image: mariadb:11
     restart: always
@@ -26,9 +30,12 @@ services:
       DB_USER: appuser
       DB_PASSWORD: apppass
       DB_NAME: appdb
+      REDIS_HOST: redis
     depends_on:
       database:
         condition: service_healthy
+      redis:
+        condition: service_started
     # DEV: nodemon für Auto-Reload. Für Produktion entfernen.
     command: npx nodemon -L server.js
     volumes:
