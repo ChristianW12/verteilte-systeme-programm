@@ -1,5 +1,5 @@
 # Stage 1: Build the Angular app
-FROM node:18 AS build
+FROM node:22-alpine AS build
 WORKDIR /app
 # Copy package manifests first to leverage Docker cache for dependencies
 COPY frontend-app/package*.json ./

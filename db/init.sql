@@ -22,11 +22,10 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
+    assigned_to INT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
     status ENUM('To Do', 'In Progress', 'Done') DEFAULT 'To Do',
-    priority ENUM('Low', 'Medium', 'High', 'Critical') DEFAULT 'Medium',
-    assigned_to INT,
     deadline DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
