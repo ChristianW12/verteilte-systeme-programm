@@ -3,9 +3,9 @@
 -- 1. Benutzer (Users)
 CREATE TABLE IF NOT EXISTS users (
     user_id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(50) NOT NULL UNIQUE,
+    username VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -25,12 +25,14 @@ CREATE TABLE IF NOT EXISTS tasks (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     status ENUM('To Do', 'In Progress', 'Done') DEFAULT 'To Do',
+    priority ENUM('Low', 'Medium', 'High') DEFAULT 'Medium',
     deadline DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by INT NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    created_by INT,
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
     FOREIGN KEY (assigned_to) REFERENCES users(user_id) ON DELETE SET NULL,
-    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 -- 4. Kommentare (Comments)
@@ -51,6 +53,7 @@ CREATE TABLE IF NOT EXISTS project_members (
     user_id INT NOT NULL,
     role ENUM('Developer', 'Admin', 'Viewer') DEFAULT 'Viewer',
     added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_project_user (project_id, user_id),
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
@@ -58,7 +61,7 @@ CREATE TABLE IF NOT EXISTS project_members (
 -- Testdaten
 
 -- Benutzer
-INSERT INTO users (username, email, password_hash) VALUES 
+INSERT INTO users (username, email, password) VALUES 
 ('admin', 'admin@example.com', 'hash123'),
 ('dev_alex', 'alex@example.com', 'hash456'),
 ('christian', 'christian@example.com', 'hash789');

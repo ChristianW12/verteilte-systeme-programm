@@ -106,7 +106,7 @@ app.post('/tasks', async (req, res) => {
 app.put('/tasks/:id/status', async (req, res) => {
     const { status } = req.body;
     try {
-        await db.query('UPDATE tasks SET status = ? WHERE id = ?', [status, req.params.id]);
+        await db.query('UPDATE tasks SET status = ? WHERE task_id = ?', [status, req.params.id]);
         
         // --- ECHTZEIT-UPDATE ---
         io.emit('task_updated', { id: req.params.id, status });
