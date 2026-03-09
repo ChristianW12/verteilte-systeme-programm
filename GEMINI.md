@@ -47,3 +47,8 @@ Der Fokus des Projekts liegt insbesondere auf:
 - Fehlertoleranz  
 
 Die Anwendung dient als praxisnahes Demonstrationssystem zur Veranschaulichung zentraler Konzepte verteilter Systeme.
+
+
+## Verbote für die AI Agents
+
+- Keine eigenen Worktrees erstellen ohne Aufforderung. Immer auf den aktuellen Branch etwas commiten und beim commiten auf den Main Branch soll aus Sicherheitsgründen nachgefragt werden, ob der User sich sicher ist. 
