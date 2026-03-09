@@ -4,6 +4,7 @@
 - Profil-Bearbeiten Seite anlegen 
 - Projekt-Erstellen Seite anlegen
 - Backend mit DB verbinden
+- Logik implementieren bei Task erstellen -> Datum kann nicht in der Vergangenheit liegen
 
 ## für Später
 
