@@ -4,6 +4,8 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 
+const apiRoutes = require('./routes/api.routes');
+
 const app = express();
 const server = http.createServer(app);
 
@@ -25,10 +27,7 @@ app.use((req, res, next) => {
     next();
 });
 
-// Ein einfacher Test-Endpunkt
-app.get('/health', (req, res) => {
-    res.json({ status: 'Backend läuft!', timestamp: new Date() });
-});
+app.use('/api', apiRoutes);
 
 // WebSocket Basis-Events
 io.on('connection', (socket) => {
