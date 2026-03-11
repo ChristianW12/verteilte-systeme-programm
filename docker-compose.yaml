@@ -48,6 +48,10 @@ services:
       - "8080:80"
     depends_on:
       - backend
+    develop:
+      watch:
+        - path: ./frontend
+          action: rebuild
 
 volumes:
   db-data:
