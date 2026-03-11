@@ -61,10 +61,11 @@ CREATE TABLE IF NOT EXISTS project_members (
 -- Testdaten
 
 -- Benutzer
-INSERT INTO users (username, email, password) VALUES 
-('admin', 'admin@example.com', 'hash123'),
-('dev_alex', 'alex@example.com', 'hash456'),
-('christian', 'christian@example.com', 'hash789');
+INSERT INTO users (username, email, password) VALUES
+('christian', 'christian@example.com', 'PasswortChristian123'),
+('alex', 'alex@example.com', 'PasswortAlex123'),
+('melina', 'melina@example.com', 'PasswortMelina123'),
+('luca', 'luca@example.com', 'PasswortLuca123');
 
 -- Projekte
 INSERT INTO projects (name, description) VALUES 
