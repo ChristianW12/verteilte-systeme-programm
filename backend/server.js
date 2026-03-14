@@ -9,7 +9,7 @@ const apiRoutes = require('./routes/api.routes');
 const app = express();
 const server = http.createServer(app);
 
-// Socket.io Initialisierung (für spätere Echtzeit-Features)
+// Socket.io Initialisierung (für spätere Echtzeit-Features)   
 const io = new Server(server, {
     cors: {
         origin: "*", // Erlaubt dem Frontend den Zugriff
@@ -19,11 +19,15 @@ const io = new Server(server, {
 
 app.use(express.json());
 
-// CORS Konfiguration für REST-Anfragen
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, PUT, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    // für den Fall das der Browser eine OPTIONS-Anfrage sendet (CORS Preflight)
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(200);
+    }
     next();
 });
 
