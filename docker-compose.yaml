@@ -49,8 +49,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
-    # DEV: nodemon für Auto-Reload. Für Produktion entfernen.
-    command: npx nodemon -L server.js
     volumes:
       - ./backend:/usr/src/app
       - /usr/src/app/node_modules
