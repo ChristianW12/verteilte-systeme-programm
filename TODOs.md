@@ -1,19 +1,28 @@
 # To Be Done 
 
+### Profil
 - Profil-Bearbeiten Seite anlegen 
 - Ausloggen Button hinzufügen
-- Projekt-Erstellen Seite anlegen
-  - Dymanisch Array erweitern für Nutzer hinzufügen per Email, Emails aus Datenbank laden mit kurzer Verzögerung auf Basis der User eingabe
-- eigene Komponenten erstellen für 
-    1. Projekte in Dashboard Page
-    2. Tasks in Dashboard Page
 
--> Über Schleife im Frontend mit Angular die Projekte/Tasks erzeugen lassen, einmal Design vorgeben und Daten einfach an Kind Komponente weitergeben
-- Logik implementieren bei Task erstellen -> Datum kann nicht in der Vergangenheit liegen
+### Projekt
+- Projekt-Erstellen Seite anlegen
+    - Nutzer hinzufügen über Email
+    - User gibt in Suchleiste Email ein, und nach Ablauf einer Wartezeit soll anfrage auf datenbank gemacht werden mit dieser Email, ob diese Adresse exisitiert
+- Projekt-Bearbeiten Seite anlegen
+- Projekt löschen Button hinzufügen
+- Rollen im Projekt hinzufügen (evtl. mit eigener Ansicht für Mitglieder in einem Projekt)
+- eigene Komponente für Projekt und Task, damit über dieses Template die einzelnen Projektes/Tasks angezeigt werden auf Dashboard Page
+
+### Task
+- Task erstellen Logik im Backend anlegen
+- Task bearbeiten im Backend + Frontend anlegen
+- eigene Detail Seite für Tasks
+- Komponente für Task erstellen, welche im Dashboard in den Spalten (TODO,...) angezeigt werden soll
+- Template für Kommentare erstellen
+- Logik im Frontend + Backend erstellen für Kommentare
+
 
 ## für Später
 
 - Dockerfiles anpassen für horizontielle Skalierung (für das Backend, keine Links hard coden)
 - weiteren Container für Load Balancer
-- PHPmyAdmin einbinden 
- 
