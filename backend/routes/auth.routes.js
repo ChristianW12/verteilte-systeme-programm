@@ -77,4 +77,37 @@ router.post("/signup", async (req, res) => {
     res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
+
+router.post('/profile', async (req, res) => {
+  const {userId} = req.body;
+  
+  if (!userId) {
+    return res.status(400).json({message: "Benutzer-ID ist erforderlich"});
+  }
+
+  try {
+    const [rows] = await db.execute(
+      "SELECT user_id, username, email, created_at FROM users WHERE user_id = ?",
+      [userId],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({message: "Benutzer nicht gefunden"});
+    }
+
+    const user = rows[0];
+    res.json({
+      user: {
+        id: user.user_id,
+        username: user.username,
+        email: user.email,
+        createdAt: user.created_at,
+      },
+    });
+  } catch (error) {
+    console.error("Fehler beim Abrufen des Profils im Backend:", error);
+    res.status(500).json({message: "Interner Serverfehler"});
+  }
+});
+
 module.exports = router;
