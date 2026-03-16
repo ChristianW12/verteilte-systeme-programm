@@ -1,0 +1,67 @@
+<section class="min-h-screen bg-slate-100 px-4 py-12">
+	<div class="mx-auto w-full max-w-md rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+		<h1 class="text-2xl font-semibold text-slate-900">Konto erstellen</h1>
+		<p class="mt-1 text-sm text-slate-600">Erstelle schnell ein neues Konto.</p>
+
+		<form class="mt-6 space-y-4" autocomplete="on">
+			<div>
+				<label for="nickname" class="mb-1 block text-sm font-medium text-slate-700">Nickname</label>
+				<input
+					id="nickname"
+					name="nickname"
+					type="text"
+					placeholder="Dein Nickname"
+					autocomplete="nickname"
+					required
+					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+				/>
+			</div>
+
+			<div>
+				<label for="email" class="mb-1 block text-sm font-medium text-slate-700">E-Mail</label>
+				<input
+					id="email"
+					name="email"
+					type="email"
+					placeholder="name@beispiel.de"
+					autocomplete="email"
+					required
+					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+				/>
+			</div>
+
+			<div>
+				<label for="password" class="mb-1 block text-sm font-medium text-slate-700">Passwort</label>
+				<input
+					id="password"
+					name="password"
+					type="password"
+					placeholder="Passwort"
+					autocomplete="new-password"
+					required
+					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+				/>
+			</div>
+
+			<div>
+				<label for="confirmPassword" class="mb-1 block text-sm font-medium text-slate-700">Passwort bestätigen</label>
+				<input
+					id="confirmPassword"
+					name="confirmPassword"
+					type="password"
+					placeholder="Passwort wiederholen"
+					autocomplete="new-password"
+					required
+					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
+				/>
+			</div>
+
+			<button
+				type="submit"
+				class="w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+			>
+				Konto erstellen
+			</button>
+		</form>
+	</div>
+</section>
