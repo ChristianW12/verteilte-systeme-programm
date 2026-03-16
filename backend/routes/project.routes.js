@@ -14,3 +14,7 @@ router.post('/delete', async (req, res) => {});
 // TODO: edit route for editing a project
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Project bearbeiten darf
 router.post('/edit', async (req, res) => {});
+
+router.post('/get', async (req, res) => {});
+
+module.exports = router;

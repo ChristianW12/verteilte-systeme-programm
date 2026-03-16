@@ -14,6 +14,6 @@ router.use('/auth', authRoutes);
 router.use('/tasks', taskRoutes);
 
 // Sub-Route für alles rund um die Projekte
-router.use('/projects', projectRoutes);
+router.use('/project', projectRoutes);
 
 module.exports = router;
