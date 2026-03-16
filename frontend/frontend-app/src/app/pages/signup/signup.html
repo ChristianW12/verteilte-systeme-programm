@@ -3,7 +3,7 @@
 		<h1 class="text-2xl font-semibold text-slate-900">Konto erstellen</h1>
 		<p class="mt-1 text-sm text-slate-600">Erstelle schnell ein neues Konto.</p>
 
-		<form class="mt-6 space-y-4" autocomplete="on">
+		<form class="mt-6 space-y-4" autocomplete="on" (ngSubmit)="onSignup()">
 			<div>
 				<label for="nickname" class="mb-1 block text-sm font-medium text-slate-700">Nickname</label>
 				<input
@@ -13,6 +13,7 @@
 					placeholder="Dein Nickname"
 					autocomplete="nickname"
 					required
+					[(ngModel)]="username"
 					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
 				/>
 			</div>
@@ -26,6 +27,7 @@
 					placeholder="name@beispiel.de"
 					autocomplete="email"
 					required
+					[(ngModel)]="email"
 					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
 				/>
 			</div>
@@ -39,6 +41,7 @@
 					placeholder="Passwort"
 					autocomplete="new-password"
 					required
+					[(ngModel)]="password"
 					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
 				/>
 			</div>
@@ -52,16 +55,22 @@
 					placeholder="Passwort wiederholen"
 					autocomplete="new-password"
 					required
+					[(ngModel)]="confirmPassword"
 					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
 				/>
 			</div>
-
 			<button
 				type="submit"
-				class="w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+				[disabled]="isSubmitting"
+				class="w-full rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
 			>
-				Konto erstellen
+				{{ isSubmitting ? 'Registriere...' : 'Konto erstellen' }}
 			</button>
 		</form>
+
+		<p class="mt-4 text-center text-sm text-slate-600">
+			Schon registriert?
+			<a routerLink="/login" class="font-medium text-indigo-600 hover:text-indigo-500">Zum Login</a>
+		</p>
 	</div>
 </section>
