@@ -28,11 +28,14 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'E-Mail oder Passwort falsch' });
     }
 
+    let userId = user.user_id;
+    let userEmail = user.email;
+
     res.json({
       message: 'Login erfolgreich',
       user: {
-        id: user.user_id,
-        email: user.email
+        id: userId,
+        email: userEmail
       }
     });
 
