@@ -1,25 +1,27 @@
 # To Be Done 
 
 ### Profil
-- Profil-Bearbeiten Seite anlegen 
-- Ausloggen Button hinzufügen
+- Profil-Bearbeiten Seite anlegen (Christian)
+- Ausloggen Button hinzufügen (Christian)
 
 ### Projekt
-- Projekt-Erstellen Seite anlegen
-    - Nutzer hinzufügen über Email
-    - User gibt in Suchleiste Email ein, und nach Ablauf einer Wartezeit soll anfrage auf datenbank gemacht werden mit dieser Email, ob diese Adresse exisitiert
-- Projekt-Bearbeiten Seite anlegen
-- Projekt löschen Button hinzufügen
-- Rollen im Projekt hinzufügen (evtl. mit eigener Ansicht für Mitglieder in einem Projekt)
-- eigene Komponente für Projekt und Task, damit über dieses Template die einzelnen Projektes/Tasks angezeigt werden auf Dashboard Page
+- Projekt-Erstellen Seite anlegen (Christian)
+    - Nutzer hinzufügen über Email (Christian)
+    - User gibt in Suchleiste Email ein, und nach Ablauf einer Wartezeit soll anfrage auf datenbank gemacht werden mit dieser Email, ob diese Adresse exisitiert (Christian)
+- Projekt-Bearbeiten Seite anlegen (Christian)
+- Projekt löschen Button hinzufügen (Christian)
+- Rollen im Projekt hinzufügen (evtl. mit eigener Ansicht für Mitglieder in einem Projekt) (Christian)
 
 ### Task
-- Task erstellen Logik im Backend anlegen
-- Task bearbeiten im Backend + Frontend anlegen
-- eigene Detail Seite für Tasks
-- Komponente für Task erstellen, welche im Dashboard in den Spalten (TODO,...) angezeigt werden soll
-- Template für Kommentare erstellen
-- Logik im Frontend + Backend erstellen für Kommentare
+- Task erstellen Logik im Backend anlegen (Alex)
+- eigene Detail Seite für Tasks (Alex)
+- Task bearbeiten im Backend + Frontend anlegen (Alex)
+- Task löschen im Backend + Frontend anlegen (Alex)
+- Meine Task Seite anlegen, meine Tasks sortieren nach den verschiedenen Projekten (Alex)
+- Template für Kommentare erstellen (Alex)
+
+### Sonstiges
+- Einheitliches Design anpassen
 
 
 ## für Später
