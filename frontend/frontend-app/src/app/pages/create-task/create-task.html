@@ -1,60 +1,61 @@
 <div class="flex justify-center pt-8 p-4">
-    <div class="w-full max-w-md">
-        <form action="" class="bg-white shadow-md rounded-lg p-6">
-            <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Neue Task erstellen</h2>
-            
-            <div class="mb-4">
-                <label for="project" class="block text-gray-700 font-bold mb-2">Projekt:</label>
-                <select id="project" name="project_id" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    <option value="">-- Projekt wählen --</option>
-                </select>
-            </div>
+  <div class="w-full max-w-md">
+    <form class="bg-white shadow-md rounded-lg p-6" (ngSubmit)="onSubmit()">
+      <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Neue Task erstellen</h2>
 
-            <div id="assignee-field" class="mb-4 hidden">
-                <label for="assignee" class="block text-gray-700 font-bold mb-2">Zuweisen an:</label>
-                <select id="assignee" name="assigned_to" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    <option value="">-- Kein Teammitglied --</option>
-                </select>
-            </div>
+      <div class="mb-4">
+        <label for="project" class="block text-gray-700 font-bold mb-2">Projekt:</label>
+        <select id="project" name="project_id" [(ngModel)]="projectId" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" required>
+          <option value="">-- Projekt wählen --</option>
+          <option *ngFor="let project of projects" [value]="project.project_id">{{ project.name }}</option>
+        </select>
+      </div>
 
-            <div class="mb-4">
-                <label for="title" class="block text-gray-700 font-bold mb-2">Titel:</label>
-                <input type="text" id="title" name="title" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
-            </div>
+      <div id="assignee-field" class="mb-4 hidden">
+        <label for="assignee" class="block text-gray-700 font-bold mb-2">Zuweisen an:</label>
+        <select id="assignee" name="assigned_to" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+          <option value="">-- Kein Teammitglied --</option>
+        </select>
+      </div>
 
-            <div class="mb-4">
-                <label for="description" class="block text-gray-700 font-bold mb-2">Beschreibung:</label>
-                <textarea id="description" name="description" rows="4" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
-            </div>
+      <div class="mb-4">
+        <label for="title" class="block text-gray-700 font-bold mb-2">Titel:</label>
+        <input type="text" id="title" name="title" [(ngModel)]="title" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600" required>
+      </div>
 
-            <div class="mb-4">
-                <label for="status" class="block text-gray-700 font-bold mb-2">Status:</label>
-                <select id="status" name="status" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    <option value="To Do">To Do</option>
-                    <option value="In Progress">In Progress</option>
-                    <option value="Done">Done</option>
-                </select>
-            </div>
+      <div class="mb-4">
+        <label for="description" class="block text-gray-700 font-bold mb-2">Beschreibung:</label>
+        <textarea id="description" name="description" [(ngModel)]="description" rows="4" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
+      </div>
 
-            <div class="mb-4">
-                <label for="priority" class="block text-gray-700 font-bold mb-2">Priorität:</label>
-                <select id="priority" name="priority" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    <option value="Low">Low</option>
-                    <option value="Medium" selected>Medium</option>
-                    <option value="High">High</option>
-                </select>
-            </div>
+      <div class="mb-4">
+        <label for="status" class="block text-gray-700 font-bold mb-2">Status:</label>
+        <select id="status" name="status" [(ngModel)]="status" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+          <option value="To Do">To Do</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Done">Done</option>
+        </select>
+      </div>
 
-            <div class="mb-4">
-                <label for="deadline" class="block text-gray-700 font-bold mb-2">Deadline:</label>
-                <input type="date" id="deadline" name="deadline" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
-            </div>
+      <div class="mb-4">
+        <label for="priority" class="block text-gray-700 font-bold mb-2">Priorität:</label>
+        <select id="priority" name="priority" [(ngModel)]="priority" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+        </select>
+      </div>
 
-            <div class="mt-6">
-                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600">
-                    Task erstellen
-                </button>
-            </div>
-        </form>
-    </div>
+      <div class="mb-4">
+        <label for="deadline" class="block text-gray-700 font-bold mb-2">Deadline:</label>
+        <input type="date" id="deadline" name="deadline" [(ngModel)]="deadline" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+      </div>
+
+      <div class="mt-6">
+        <button type="submit" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-600">
+          Task erstellen
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
