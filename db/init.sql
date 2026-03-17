@@ -14,7 +14,9 @@ CREATE TABLE IF NOT EXISTS projects (
     project_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by INT default null,
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
 -- 3. Aufgaben (Tasks/Issues)
@@ -24,7 +26,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     assigned_to INT,
     title VARCHAR(255) NOT NULL,
     description TEXT,
-    status ENUM('To Do', 'In Progress', 'Done') DEFAULT 'To Do',
+    status ENUM('To Do', 'In Progress', 'Done', 'Blocked') DEFAULT 'To Do',
     priority ENUM('Low', 'Medium', 'High') DEFAULT 'Medium',
     deadline DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -68,9 +70,9 @@ INSERT INTO users (username, email, password) VALUES
 ('luca', 'luca@example.com', 'PasswortLuca123');
 
 -- Projekte
-INSERT INTO projects (name, description) VALUES 
-('Verteilte Systeme Projekt', 'Entwicklung einer skalierbaren Jira-Alternative mit Docker und Node.js.'),
-('Frontend Redesign', 'Modernisierung der Benutzeroberfläche auf Basis von Angular 19.');
+INSERT INTO projects (name, description , created_by) VALUES 
+('Verteilte Systeme Projekt', 'Entwicklung einer skalierbaren Jira-Alternative mit Docker und Node.js.', 1),
+('Frontend Redesign', 'Modernisierung der Benutzeroberfläche auf Basis von Angular 19.', 1);
 
 -- Projektmitglieder zuweisen
 INSERT INTO project_members (project_id, user_id, role) VALUES 
