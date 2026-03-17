@@ -32,10 +32,19 @@ export class CreateTask implements OnInit {
   status = 'To Do';
   priority = 'Medium';
   deadline = '';
+  // minDate für das date input, verhindert Auswahl vergangener Daten
+  minDate = '';
 
   private http = inject(HttpClient);
 
   ngOnInit(): void {
+    // Heutiges Datum im Format YYYY-MM-DD (lokal)
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    this.minDate = `${year}-${month}-${day}`;
+
     this.http.post<ProjectsResponse>('http://localhost:3000/api/tasks/get', {}).subscribe({
       next: (response) => {
         this.projects = response.projects ?? [];
@@ -62,6 +71,15 @@ export class CreateTask implements OnInit {
     if (!this.title.trim()) {
       alert('Bitte einen Titel eingeben.');
       return;
+    }
+
+    // Client-seitige Validierung: Deadline darf nicht in der Vergangenheit liegen
+    if (this.deadline) {
+      // Beide Strings sind im Format YYYY-MM-DD, daher funktioniert der String-Vergleich
+      if (this.deadline < this.minDate) {
+        alert('Die Deadline darf nicht in der Vergangenheit liegen.');
+        return;
+      }
     }
 
     const payload = {

@@ -48,7 +48,7 @@
 
       <div class="mb-4">
         <label for="deadline" class="block text-gray-700 font-bold mb-2">Deadline:</label>
-        <input type="date" id="deadline" name="deadline" [(ngModel)]="deadline" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
+        <input type="date" id="deadline" name="deadline" [(ngModel)]="deadline" [attr.min]="minDate" class="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600">
       </div>
 
       <div class="mt-6">
