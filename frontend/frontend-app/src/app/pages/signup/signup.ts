@@ -21,18 +21,13 @@ export class Signup {
   password = '';
   confirmPassword = '';
   isSubmitting = false;
+  private emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   private http = inject(HttpClient);
   private router = inject(Router);
 
   onSignup() {
-    if (!this.username || !this.email || !this.password || !this.confirmPassword) {
-      alert('Bitte alle Felder ausfüllen');
-      return;
-    }
-
-    if (this.password !== this.confirmPassword) {
-      alert('Passwörter stimmen nicht überein');
+    if (!this.correctInput()) {
       return;
     }
 
@@ -41,26 +36,55 @@ export class Signup {
     const payload = {
       username: this.username,
       email: this.email,
-      password: this.password
+      password: this.password,
     };
 
-    this.http.post<SignupResponse>('http://localhost:3000/api/auth/signup', payload)
-      .subscribe({
-        next: () => {
-          this.isSubmitting = false;
-          alert('Registrierung erfolgreich');
-          this.router.navigate(['/login']);
-        },
-        error: (err: HttpErrorResponse) => {
-          if (err.status === 409) {
-            alert(err.error?.message || 'E-Mail bereits vergeben');
-          }
-          if (err.status === 400) {
-            alert(err.error?.message || 'Ungültige Eingabedaten');
-          }
-          this.isSubmitting = false;
-          
+    this.http.post<SignupResponse>('http://localhost:3000/api/auth/signup', payload).subscribe({
+      next: () => {
+        this.isSubmitting = false;
+        alert('Registrierung erfolgreich');
+        this.router.navigate(['/login']);
+      },
+      error: (err: HttpErrorResponse) => {
+        if (err.status === 409) {
+          alert(err.error?.message || 'E-Mail bereits vergeben');
         }
-      });
+        if (err.status === 400) {
+          alert(err.error?.message || 'Ungültige Eingabedaten');
+        }
+        this.isSubmitting = false;
+      },
+    });
+  }
+
+  correctInput(): boolean {
+
+    let fehlermeldung = '';
+
+    if (!this.username || !this.email || !this.password || !this.confirmPassword) {
+      fehlermeldung += 'Bitte alle Felder ausfüllen\n';
+    }
+
+    if (this.username.trim().length < 3) {
+      fehlermeldung += 'Nickname muss mindestens 3 Zeichen haben\n';
+    }
+
+    if (!this.emailRegex.test(this.email.trim())) {
+      fehlermeldung += 'Bitte eine gültige E-Mail eingeben (z. B. name@domain.de)\n';
+    }
+
+    if (this.password.length < 8) {
+      fehlermeldung += 'Passwort muss mindestens 8 Zeichen haben\n';
+    }
+
+    if (this.password !== this.confirmPassword) {
+      fehlermeldung += 'Passwörter stimmen nicht überein\n';
+    }
+
+    if (fehlermeldung) {
+      alert(fehlermeldung);
+      return false;
+    }
+    return true;
   }
 }
