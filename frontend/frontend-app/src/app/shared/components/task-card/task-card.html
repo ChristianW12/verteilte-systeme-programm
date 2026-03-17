@@ -10,7 +10,7 @@
     <p class="flex items-center gap-2">
       <span class="font-semibold text-slate-900">Deadline:</span>
       <time [attr.datetime]="task().deadline || null" class="rounded-md bg-slate-100 px-2 py-0.5 font-medium text-slate-800">
-        {{ task().deadline || 'Keine Deadline' }}
+        {{ (task().deadline | date: 'dd.MM.yyyy') || 'Keine Deadline' }}
       </time>
     </p>
   </div>

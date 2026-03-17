@@ -1,3 +1,4 @@
+import { DatePipe } from '@angular/common';
 import { Component, input } from '@angular/core';
 
 export type TaskCardData = {
@@ -10,7 +11,7 @@ export type TaskCardData = {
 
 @Component({
   selector: 'app-task-card',
-  imports: [],
+  imports: [DatePipe],
   templateUrl: './task-card.html',
   styleUrl: './task-card.css',
 })
