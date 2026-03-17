@@ -3,8 +3,11 @@
   <!-- Sidebar: Projektliste (~20%) -->
   <aside class="w-1/5 bg-gray-800 text-white flex flex-col p-4 gap-2 shrink-0">
     <h2 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Projekte</h2>
-      <!-- Beispielprojekt-Karte -->
-      <app-project-card></app-project-card>
+    @for (project of projects(); track project.project_id) {
+      <app-project-card [project]="project"></app-project-card>
+    } @empty {
+      <p class="text-sm text-gray-400">Keine Projekte gefunden.</p>
+    }
     <div class="mt-auto">
       <button class="w-full px-3 py-2 rounded-lg border border-dashed border-gray-600 text-gray-400 text-sm hover:border-indigo-400 hover:text-indigo-400 transition">
         + Neues Projekt
