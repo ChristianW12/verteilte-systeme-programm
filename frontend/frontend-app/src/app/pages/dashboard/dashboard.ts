@@ -1,6 +1,6 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ProjectCard, ProjectCardData } from '../../shared/components/project-card/project-card';
-import { TaskCard } from '../../shared/components/task-card/task-card';
+import { TaskCard, TaskCardData } from '../../shared/components/task-card/task-card';
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
@@ -8,12 +8,25 @@ type ProjectApiItem = {
   project_id: number;
   name: string;
   description: string;
-  created_by: number;
+  created_by: string;
 };
 
 type GetProjectsResponse = {
   userId: number;
   projects: ProjectApiItem[];
+};
+
+type TaskApiItem = {
+  task_id: number;
+  project_id: number;
+  title: string;
+  status: 'To Do' | 'In Progress' | 'Done' | 'Blocked';
+  assigned_to?: string | null;
+  deadline?: string | null;
+};
+
+type GetTasksResponse = {
+  tasks: TaskApiItem[];
 };
 
 @Component({
@@ -30,6 +43,15 @@ export class Dashboard implements OnInit {
   private userId = localStorage.getItem('userId');
 
   projects = signal<ProjectCardData[]>([]);
+  selectedProjectId = signal<number | null>(null);
+  selectedProjectName = signal<string>('Kein Projekt ausgewaehlt');
+  tasks = signal<TaskCardData[]>([]);
+
+  todoTasks = computed(() => this.tasks().filter((task) => task.status === 'To Do'));
+  inProgressTasks = computed(() => this.tasks().filter((task) => task.status === 'In Progress'));
+  doneTasks = computed(() => this.tasks().filter((task) => task.status === 'Done'));
+  blockedTasks = computed(() => this.tasks().filter((task) => task.status === 'Blocked'));
+
   private userIdResponse = signal<number | null>(null);
 
   ngOnInit(): void {
@@ -44,8 +66,7 @@ export class Dashboard implements OnInit {
           response.projects.map((project) => ({
             project_id: project.project_id,
             name: project.name,
-            description: project.description,
-            created_by: String(project.created_by),
+            created_by: project.created_by,
           })),
         );
         this.userIdResponse.set(response.userId);
@@ -56,10 +77,41 @@ export class Dashboard implements OnInit {
           this.router.navigate(['/login']);
         }
 
+        const firstProject = this.projects()[0];
+        if (firstProject) {
+          this.selectProject(firstProject);
+        }
+
         console.log('Projekte erfolgreich abgerufen:', this.projects());
       },
       error: (err) => {
         console.error('Fehler beim Abrufen der Projekte:', err);
+      },
+    });
+  }
+
+  selectProject(project: ProjectCardData): void {
+    this.selectedProjectId.set(project.project_id);
+    this.selectedProjectName.set(project.name);
+    this.loadTasksForProject(project.project_id);
+  }
+
+  private loadTasksForProject(projectId: number): void {
+    this.http.get<GetTasksResponse>(`http://localhost:3000/api/tasks/project/${projectId}`).subscribe({
+      next: (response) => {
+        this.tasks.set(
+          (response.tasks ?? []).map((task) => ({
+            task_id: task.task_id,
+            title: task.title,
+            status: task.status,
+            assigned_to: task.assigned_to,
+            deadline: task.deadline,
+          })),
+        );
+      },
+      error: (err) => {
+        console.error('Fehler beim Abrufen der Tasks:', err);
+        this.tasks.set([]);
       },
     });
   }

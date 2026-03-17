@@ -1,4 +1,12 @@
-import { Component } from '@angular/core';
+import { Component, input } from '@angular/core';
+
+export type TaskCardData = {
+  task_id: number;
+  title: string;
+  status: 'To Do' | 'In Progress' | 'Done' | 'Blocked';
+  assigned_to?: string | null;
+  deadline?: string | null;
+};
 
 @Component({
   selector: 'app-task-card',
@@ -6,4 +14,6 @@ import { Component } from '@angular/core';
   templateUrl: './task-card.html',
   styleUrl: './task-card.css',
 })
-export class TaskCard {}
+export class TaskCard {
+  task = input.required<TaskCardData>();
+}
