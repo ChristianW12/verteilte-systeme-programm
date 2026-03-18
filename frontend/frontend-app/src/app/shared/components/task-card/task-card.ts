@@ -1,5 +1,6 @@
 import { DatePipe } from '@angular/common';
 import { Component, input } from '@angular/core';
+import { RouterModule } from '@angular/router';
 
 export type TaskCardData = {
   task_id: number;
@@ -11,7 +12,8 @@ export type TaskCardData = {
 
 @Component({
   selector: 'app-task-card',
-  imports: [DatePipe],
+  standalone: true,
+  imports: [DatePipe, RouterModule],
   templateUrl: './task-card.html',
   styleUrl: './task-card.css',
 })

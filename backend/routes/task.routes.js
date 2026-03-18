@@ -94,6 +94,44 @@ router.post('/delete', async (_req, _res) => {});
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Task bearbeiten darf
 router.post('/edit', async (_req, _res) => {});
 
+router.get('/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ message: 'Ungueltige Task-ID' });
+  }
+
+  try {
+    const [rows] = await db.execute(
+      `SELECT t.task_id, t.project_id, t.title, t.description, t.status, t.priority, t.deadline, t.assigned_to,
+              assignee.email AS assigned_to_email
+       FROM tasks t
+       LEFT JOIN users assignee ON assignee.user_id = t.assigned_to
+       WHERE t.task_id = ?`,
+      [id],
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Task nicht gefunden' });
+    }
+
+    const task = rows[0];
+    const normalized = {
+      task_id: task.task_id,
+      title: task.title,
+      description: task.description,
+      status: task.status,
+      priority: task.priority,
+      deadline: task.deadline,
+      assigned_to: task.assigned_to_email || null,
+    };
+
+    return res.status(200).json({ task: normalized });
+  } catch (error) {
+    console.error('Fehler beim Laden der Task:', error);
+    return res.status(500).json({ message: 'Interner Serverfehler' });
+  }
+});
+
 router.get('/project/:projectId', async (req, res) => {
   const projectId = Number(req.params.projectId);
 
