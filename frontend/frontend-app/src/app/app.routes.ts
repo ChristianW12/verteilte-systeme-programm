@@ -15,8 +15,8 @@ export const routes: Routes = [
   { path: 'dashboard', component: Dashboard, canActivate: [authGuard] }, // Geschützt
   { path: 'login', component: Login },
   { path: 'signup', component: Signup },
-  { path: 'task/:id', component: DetailedTask, canActivate: [authGuard] }, // Detailseite für Tasks
   { path: 'task/create', component: CreateTask, canActivate: [authGuard] }, // Geschützt
+  { path: 'task/:id', component: DetailedTask, canActivate: [authGuard] }, // Detailseite für Tasks
   { path: 'project', component: Project, canActivate: [authGuard] },
   {path: 'project/create', component: CreateProject, canActivate: [authGuard]}, 
   { path: 'profile', component: Profile, canActivate: [authGuard] }, // Geschützt
