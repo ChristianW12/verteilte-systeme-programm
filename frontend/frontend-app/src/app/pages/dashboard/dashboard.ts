@@ -55,6 +55,7 @@ export class Dashboard implements OnInit {
 
   private userIdResponse = signal<number | null>(null);
 
+
   ngOnInit(): void {
     if (!this.userId) {
       this.router.navigate(['/login']);
@@ -74,6 +75,7 @@ export class Dashboard implements OnInit {
           })),
         );
         this.userIdResponse.set(response.userId);
+        console.log('Das sind die Admins der Projekte:', response.projects.map((p) => p.admin_id));
 
         if (String(this.userIdResponse()) !== this.userId) {
           console.warn('Die userId aus der Antwort stimmt nicht mit der gespeicherten userId überein.');
