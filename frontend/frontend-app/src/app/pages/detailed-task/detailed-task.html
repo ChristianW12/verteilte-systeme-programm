@@ -1,42 +1,42 @@
 <div class="max-w-2xl mx-auto p-6">
   <button class="mb-4 text-sm text-blue-600 hover:underline" (click)="goBack()">← Zurück zum Dashboard</button>
 
-  <div *ngIf="loading" class="text-center text-gray-600">
+  <div *ngIf="loading()" class="text-center text-gray-600">
     <p>Task wird geladen...</p>
   </div>
 
-  <div *ngIf="error && !loading" class="text-center text-red-600">
-    <p>{{ error }}</p>
+  <div *ngIf="error() && !loading()" class="text-center text-red-600">
+    <p>{{ error() }}</p>
   </div>
 
-  <div *ngIf="task && !loading" class="bg-white rounded-lg shadow-md p-6">
-    <h1 class="text-3xl font-bold mb-4">{{ task.title }}</h1>
+  <div *ngIf="task() && !loading()" class="bg-white rounded-lg shadow-md p-6">
+    <h1 class="text-3xl font-bold mb-4">{{ task()!.title }}</h1>
 
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div>
         <label class="block text-sm font-semibold text-gray-700">Status:</label>
-        <p class="text-lg text-gray-900">{{ task.status }}</p>
+        <p class="text-lg text-gray-900">{{ task()!.status }}</p>
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-gray-700">Priorität:</label>
-        <p class="text-lg text-gray-900">{{ task.priority }}</p>
+        <p class="text-lg text-gray-900">{{ task()!.priority }}</p>
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-gray-700">Bearbeiter:</label>
-        <p class="text-lg text-gray-900">{{ task.assigned_to || 'Nicht zugewiesen' }}</p>
+        <p class="text-lg text-gray-900">{{ task()!.assigned_to || 'Nicht zugewiesen' }}</p>
       </div>
 
       <div>
         <label class="block text-sm font-semibold text-gray-700">Deadline:</label>
-        <p class="text-lg text-gray-900">{{ task.deadline ? (task.deadline | date:'dd.MM.yyyy') : 'Keine Deadline' }}</p>
+        <p class="text-lg text-gray-900">{{ task()!.deadline ? (task()!.deadline | date:'dd.MM.yyyy') : 'Keine Deadline' }}</p>
       </div>
     </div>
 
     <div class="mb-4">
       <label class="block text-sm font-semibold text-gray-700 mb-2">Beschreibung:</label>
-      <p class="text-gray-900 whitespace-pre-wrap">{{ task.description || '—' }}</p>
+      <p class="text-gray-900 whitespace-pre-wrap">{{ task()!.description || '—' }}</p>
     </div>
   </div>
 </div>

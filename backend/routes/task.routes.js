@@ -95,11 +95,13 @@ router.post('/delete', async (_req, _res) => {});
 router.post('/edit', async (_req, _res) => {});
 
 router.get('/:id', async (req, res) => {
+  console.log('API wurde korrekt aufgerufen')
   const id = Number(req.params.id);
   if (!Number.isInteger(id) || id <= 0) {
     return res.status(400).json({ message: 'Ungueltige Task-ID' });
   }
 
+  console.log('Task wird versucht über ID aus der Datenbank zu laden')
   try {
     const [rows] = await db.execute(
       `SELECT t.task_id, t.project_id, t.title, t.description, t.status, t.priority, t.deadline, t.assigned_to,
@@ -109,6 +111,8 @@ router.get('/:id', async (req, res) => {
        WHERE t.task_id = ?`,
       [id],
     );
+    
+    console.log('Datenbankabfrage wurde gestartet')
 
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Task nicht gefunden' });
@@ -125,6 +129,9 @@ router.get('/:id', async (req, res) => {
       assigned_to: task.assigned_to_email || null,
     };
 
+    console.log('Task wurde normalisiert:');
+
+    console.log('Task wurde erfolgreich geladen und gesendet');
     return res.status(200).json({ task: normalized });
   } catch (error) {
     console.error('Fehler beim Laden der Task:', error);

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
@@ -25,9 +25,9 @@ export class DetailedTask implements OnInit {
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
 
-  task: TaskDetail | null = null;
-  loading = true;
-  error: string | null = null;
+  task = signal<TaskDetail | null>(null);
+  loading = signal(true);
+  error = signal<string | null>(null);
 
   ngOnInit(): void {
     console.log('Hier wird ngOnInit aufgerufen');
@@ -38,13 +38,14 @@ export class DetailedTask implements OnInit {
       const taskId = Number.isInteger(routeTaskId) && routeTaskId > 0 ? routeTaskId : stateTaskId;
 
       if (!taskId || !Number.isInteger(taskId) || taskId <= 0) {
-        this.error = 'Ungültige Task-ID';
-        this.loading = false;
+        this.error.set('Ungültige Task-ID');
+        this.task.set(null);
+        this.loading.set(false);
         return;
       }
 
-      this.loading = true;
-      this.error = null;
+      this.loading.set(true);
+      this.error.set(null);
       this.loadTask(taskId);
     });
   }
@@ -52,17 +53,22 @@ export class DetailedTask implements OnInit {
   loadTask(id: number) {
     this.http.get<{ task?: TaskDetail }>(`http://localhost:3000/api/tasks/${id}`).subscribe({
       next: (res) => {
-        console.log('Wir befinden ins in der API Anfrage')
+        console.log('Wir befinden uns in der API Anfrage', res.task?.task_id);
         if (!res.task) {
-          this.error = 'Task nicht gefunden';
+          this.error.set('Task nicht gefunden');
+          this.task.set(null);
+          console.log('Task nicht gefunden');
         } else {
-          this.task = res.task;
+          this.task.set(res.task);
+          console.log('Task gefunden:', this.task());
         }
-        this.loading = false;
+        this.loading.set(false);
       },
       error: () => {
-        this.error = 'Fehler beim Laden der Task';
-        this.loading = false;
+        this.error.set('Fehler beim Laden der Task');
+        this.task.set(null);
+        console.log('Fehler beim Laden der Task');
+        this.loading.set(false);
       },
     });
   }
