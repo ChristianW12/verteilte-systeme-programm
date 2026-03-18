@@ -13,7 +13,7 @@
 - Rollen im Projekt hinzufügen (evtl. mit eigener Ansicht für Mitglieder in einem Projekt) (Christian)
 
 ### Task
-- Task erstellen Logik im Backend anlegen (Alex)
+- Task erstellen Logik im Backend anlegen (Alex) (✅)
 - eigene Detail Seite für Tasks (Alex)
 - Task bearbeiten im Backend + Frontend anlegen (Alex)
 - Task löschen im Backend + Frontend anlegen (Alex)
