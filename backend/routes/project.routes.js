@@ -24,7 +24,7 @@ router.get("/get/:userId", async (req, res) => {
 
   try {
     const [projects] = await db.query(
-      "select p.project_id, p.name, p.description, u.email from projects p join users u on u.user_id = p.created_by where p.created_by = ?;",
+      "select p.project_id, p.name, p.description, u.email, u.user_id from projects p join users u on u.user_id = p.created_by where p.created_by = ?;",
       [userId],
     );
 
@@ -35,6 +35,7 @@ router.get("/get/:userId", async (req, res) => {
         name: p.name,
         description: p.description,
         created_by: p.email,
+        admin_id: p.user_id,
       })),
     };
 

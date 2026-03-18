@@ -4,6 +4,7 @@ export type ProjectCardData = {
   project_id: number;
   name: string;
   created_by?: string;
+  admin_id?: number;
 };
 
 @Component({
@@ -14,4 +15,5 @@ export type ProjectCardData = {
 })
 export class ProjectCard {
   project = input.required<ProjectCardData>();
+  canUserEditProject = input<boolean>(false);
 }

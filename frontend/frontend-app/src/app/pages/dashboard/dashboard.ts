@@ -9,6 +9,7 @@ type ProjectApiItem = {
   name: string;
   description: string;
   created_by: string;
+  admin_id: number;
 };
 
 type GetProjectsResponse = {
@@ -60,6 +61,7 @@ export class Dashboard implements OnInit {
       return;
     }
 
+    // Holt die Daten für die Projekte bei denen der eingeloggte User beteiligt ist
     this.http.get<GetProjectsResponse>(`http://localhost:3000/api/project/get/${this.userId}`).subscribe({
       next: (response) => {
         this.projects.set(
@@ -67,6 +69,8 @@ export class Dashboard implements OnInit {
             project_id: project.project_id,
             name: project.name,
             created_by: project.created_by,
+            // Hier wird noch zusätzlich die ID des Admins gespeichert, hilft uns später wenn wir ein Projekt bearbeiten Button einfügen möchte 
+            admin_id: project.admin_id,
           })),
         );
         this.userIdResponse.set(response.userId);
@@ -88,7 +92,13 @@ export class Dashboard implements OnInit {
         console.error('Fehler beim Abrufen der Projekte:', err);
       },
     });
+
   }
+
+  canUserEditProject(project: ProjectCardData): boolean {
+    return project.admin_id === Number(this.userId);
+  }
+
 
   selectProject(project: ProjectCardData): void {
     this.selectedProjectId.set(project.project_id);

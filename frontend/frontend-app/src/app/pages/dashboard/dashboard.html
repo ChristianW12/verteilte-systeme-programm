@@ -9,7 +9,7 @@
         class="w-full text-left"
         (click)="selectProject(project)"
       >
-        <app-project-card [project]="project"></app-project-card>
+        <app-project-card [project]="project" [canUserEditProject]="canUserEditProject(project)"></app-project-card>
       </button>
     } @empty {
       <p class="text-sm text-gray-400">Keine Projekte gefunden.</p>
