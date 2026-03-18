@@ -2,8 +2,7 @@
 
 ### Profil
 - Profil-Bearbeiten Seite anlegen (Christian)
-- Ausloggen Button hinzufügen (Christian)
-
+1
 ### Projekt
 - Projekt-Erstellen Seite anlegen (Christian)
     - Nutzer hinzufügen über Email (Christian)
@@ -13,11 +12,10 @@
 - Rollen im Projekt hinzufügen (evtl. mit eigener Ansicht für Mitglieder in einem Projekt) (Christian)
 
 ### Task
-- Task erstellen Logik im Backend anlegen (Alex)
 - eigene Detail Seite für Tasks (Alex)
 - Task bearbeiten im Backend + Frontend anlegen (Alex)
 - Task löschen im Backend + Frontend anlegen (Alex)
-- Meine Task Seite anlegen, meine Tasks sortieren nach den verschiedenen Projekten (Alex)
+- Meine Task als Filter bei Dashboard, Anpassung im Backend -> assigned_to muss auch ans Frontend geschickt werden
 - Template für Kommentare erstellen (Alex)
 
 ### Sonstiges
