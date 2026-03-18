@@ -8,6 +8,7 @@ import { DetailedTask } from './pages/detailed-task/detailed-task';
 import { authGuard } from './auth.guard'; 
 import { Signup } from './pages/signup/signup';
 import { Project } from './pages/project/project';
+import { CreateProject } from './pages/create-project/create-project';
 
 export const routes: Routes = [
   { path: '', component: Home },
@@ -17,7 +18,7 @@ export const routes: Routes = [
   { path: 'task', component: DetailedTask, canActivate: [authGuard] }, // Detailseite für Tasks
   { path: 'task/create', component: CreateTask, canActivate: [authGuard] }, // Geschützt
   { path: 'project', component: Project, canActivate: [authGuard] },
-  {path: 'project/create', component: CreateTask, canActivate: [authGuard]}, 
+  {path: 'project/create', component: CreateProject, canActivate: [authGuard]}, 
   { path: 'profile', component: Profile, canActivate: [authGuard] }, // Geschützt
   { path: '**', component: Home },
 ];

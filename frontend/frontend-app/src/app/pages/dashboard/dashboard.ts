@@ -1,7 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ProjectCard, ProjectCardData } from '../../shared/components/project-card/project-card';
 import { TaskCard, TaskCardData } from '../../shared/components/task-card/task-card';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
 type ProjectApiItem = {
@@ -31,7 +31,7 @@ type GetTasksResponse = {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [ProjectCard, TaskCard],
+  imports: [ProjectCard, TaskCard, RouterLink],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
