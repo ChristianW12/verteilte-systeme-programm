@@ -13,12 +13,9 @@
 - Rollen im Projekt hinzufügen (evtl. mit eigener Ansicht für Mitglieder in einem Projekt) (Christian)
 
 ### Task
-- Task erstellen Logik im Backend anlegen (Alex)
-- eigene Detail Seite für Tasks (Alex)
 - Task bearbeiten im Backend + Frontend anlegen (Alex)
 - Task löschen im Backend + Frontend anlegen (Alex)
-- Meine Task Seite anlegen, meine Tasks sortieren nach den verschiedenen Projekten (Alex)
-- Template für Kommentare erstellen (Alex)
+- Meine Tasks: Filter auf das Dashboard, nur die einem selbst zugewiesenen Tasks sollen angezeigt werden (Alex)
 
 ### Sonstiges
 - Einheitliches Design anpassen
