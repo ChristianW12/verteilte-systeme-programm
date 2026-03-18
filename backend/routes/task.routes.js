@@ -7,6 +7,40 @@ const db = require('../db');
 const allowedStatus = ['To Do', 'In Progress', 'Done', 'Blocked'];
 const allowedPriority = ['Low', 'Medium', 'High'];
 
+async function getTaskPermissionContext(taskId, userId) {
+  const [taskRows] = await db.execute(
+    `SELECT task_id, project_id, assigned_to
+     FROM tasks
+     WHERE task_id = ?`,
+    [taskId],
+  );
+
+  if (taskRows.length === 0) {
+    return { task: null, role: null, canEdit: false, canDelete: false };
+  }
+
+  const task = taskRows[0];
+
+  const [memberRows] = await db.execute(
+    `SELECT role
+     FROM project_members
+     WHERE project_id = ? AND user_id = ?`,
+    [task.project_id, userId],
+  );
+
+  const rawRole = memberRows.length > 0 ? String(memberRows[0].role) : '';
+  const role = rawRole.toLowerCase();
+  const isAdmin = role === 'admin';
+  const isAssignedDeveloper = role === 'developer' && Number(task.assigned_to) === userId;
+
+  return {
+    task,
+    role: rawRole || null,
+    canEdit: isAdmin || isAssignedDeveloper,
+    canDelete: isAdmin || isAssignedDeveloper,
+  };
+}
+
 router.post('/create', async (req, res) => {
   const { project_id, title, description, status, priority, deadline, created_by } = req.body;
 
@@ -88,20 +122,103 @@ router.post('/create', async (req, res) => {
 });
 
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Task löschen darf
-router.post('/delete', async (_req, _res) => {});
+router.post('/delete', async (req, res) => {
+  const { task_id, user_id } = req.body;
+
+  const taskId = Number(task_id);
+  const userId = Number(user_id);
+
+  if (!Number.isInteger(taskId) || taskId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: 'task_id und user_id muessen gueltige Zahlen sein' });
+  }
+
+  try {
+    const permissions = await getTaskPermissionContext(taskId, userId);
+
+    if (!permissions.task) {
+      return res.status(404).json({ message: 'Task nicht gefunden' });
+    }
+
+    if (!permissions.canDelete) {
+      return res.status(403).json({ message: 'Keine Berechtigung zum Loeschen dieser Task' });
+    }
+
+    await db.execute('DELETE FROM tasks WHERE task_id = ?', [taskId]);
+
+    return res.status(200).json({ message: 'Task erfolgreich geloescht' });
+  } catch (error) {
+    console.error('Fehler beim Loeschen der Task:', error);
+    return res.status(500).json({ message: 'Interner Serverfehler' });
+  }
+});
 
 // TODO: edit route for editing a task
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Task bearbeiten darf
-router.post('/edit', async (_req, _res) => {});
+router.post('/edit', async (req, res) => {
+  const { task_id, user_id, title, description, status, priority, deadline } = req.body;
+
+  const taskId = Number(task_id);
+  const userId = Number(user_id);
+
+  if (!Number.isInteger(taskId) || taskId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: 'task_id und user_id muessen gueltige Zahlen sein' });
+  }
+
+  const cleanTitle = String(title || '').trim();
+  const cleanDescription = description !== undefined ? String(description || '').trim() : null;
+  const nextStatus = status || 'To Do';
+  const nextPriority = priority || 'Medium';
+  const nextDeadline = deadline || null;
+
+  if (!cleanTitle) {
+    return res.status(400).json({ message: 'Titel darf nicht leer sein' });
+  }
+
+  if (!allowedStatus.includes(nextStatus)) {
+    return res.status(400).json({ message: 'Ungueltiger Status' });
+  }
+
+  if (!allowedPriority.includes(nextPriority)) {
+    return res.status(400).json({ message: 'Ungueltige Prioritaet' });
+  }
+
+  try {
+    const permissions = await getTaskPermissionContext(taskId, userId);
+
+    if (!permissions.task) {
+      return res.status(404).json({ message: 'Task nicht gefunden' });
+    }
+
+    if (!permissions.canEdit) {
+      return res.status(403).json({ message: 'Keine Berechtigung zum Bearbeiten dieser Task' });
+    }
+
+    await db.execute(
+      `UPDATE tasks
+       SET title = ?,
+           description = ?,
+           status = ?,
+           priority = ?,
+           deadline = ?
+       WHERE task_id = ?`,
+      [cleanTitle, cleanDescription, nextStatus, nextPriority, nextDeadline, taskId],
+    );
+
+    return res.status(200).json({ message: 'Task erfolgreich bearbeitet' });
+  } catch (error) {
+    console.error('Fehler beim Bearbeiten der Task:', error);
+    return res.status(500).json({ message: 'Interner Serverfehler' });
+  }
+});
 
 router.get('/:id', async (req, res) => {
-  console.log('API wurde korrekt aufgerufen')
-  const id = Number(req.params.id);
-  if (!Number.isInteger(id) || id <= 0) {
+  const taskId = Number(req.params.id);
+  const userId = Number(req.query.user_id);
+
+  if (!Number.isInteger(taskId) || taskId <= 0) {
     return res.status(400).json({ message: 'Ungueltige Task-ID' });
   }
 
-  console.log('Task wird versucht über ID aus der Datenbank zu laden')
   try {
     const [rows] = await db.execute(
       `SELECT t.task_id, t.project_id, t.title, t.description, t.status, t.priority, t.deadline, t.assigned_to,
@@ -109,10 +226,8 @@ router.get('/:id', async (req, res) => {
        FROM tasks t
        LEFT JOIN users assignee ON assignee.user_id = t.assigned_to
        WHERE t.task_id = ?`,
-      [id],
+      [taskId],
     );
-    
-    console.log('Datenbankabfrage wurde gestartet')
 
     if (rows.length === 0) {
       return res.status(404).json({ message: 'Task nicht gefunden' });
@@ -129,10 +244,17 @@ router.get('/:id', async (req, res) => {
       assigned_to: task.assigned_to_email || null,
     };
 
-    console.log('Task wurde normalisiert:');
+    let permissions = { canEdit: false, canDelete: false };
 
-    console.log('Task wurde erfolgreich geladen und gesendet');
-    return res.status(200).json({ task: normalized });
+    if (Number.isInteger(userId) && userId > 0) {
+      const permissionContext = await getTaskPermissionContext(taskId, userId);
+      permissions = {
+        canEdit: permissionContext.canEdit,
+        canDelete: permissionContext.canDelete,
+      };
+    }
+
+    return res.status(200).json({ task: normalized, permissions });
   } catch (error) {
     console.error('Fehler beim Laden der Task:', error);
     return res.status(500).json({ message: 'Interner Serverfehler' });

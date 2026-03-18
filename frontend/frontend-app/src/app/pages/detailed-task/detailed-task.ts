@@ -13,6 +13,11 @@ type TaskDetail = {
   deadline?: string | null;
 };
 
+type TaskPermissions = {
+  canEdit: boolean;
+  canDelete: boolean;
+};
+
 @Component({
   selector: 'app-detailed-task',
   standalone: true,
@@ -28,6 +33,7 @@ export class DetailedTask implements OnInit {
   task = signal<TaskDetail | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
+  permissions = signal<TaskPermissions>({ canEdit: false, canDelete: false });
 
   ngOnInit(): void {
     console.log('Hier wird ngOnInit aufgerufen');
@@ -51,26 +57,68 @@ export class DetailedTask implements OnInit {
   }
 
   loadTask(id: number) {
-    this.http.get<{ task?: TaskDetail }>(`http://localhost:3000/api/tasks/${id}`).subscribe({
-      next: (res) => {
-        console.log('Wir befinden uns in der API Anfrage', res.task?.task_id);
-        if (!res.task) {
-          this.error.set('Task nicht gefunden');
+    const userId = localStorage.getItem('userId');
+    const userIdParam = userId ? `?user_id=${Number(userId)}` : '';
+
+    this.http
+      .get<{ task?: TaskDetail; permissions?: TaskPermissions }>(`http://localhost:3000/api/tasks/${id}${userIdParam}`)
+      .subscribe({
+        next: (res) => {
+          if (!res.task) {
+            this.error.set('Task nicht gefunden');
+            this.task.set(null);
+            this.permissions.set({ canEdit: false, canDelete: false });
+          } else {
+            this.task.set(res.task);
+            this.permissions.set(res.permissions ?? { canEdit: false, canDelete: false });
+          }
+          this.loading.set(false);
+        },
+        error: () => {
+          this.error.set('Fehler beim Laden der Task');
           this.task.set(null);
-          console.log('Task nicht gefunden');
-        } else {
-          this.task.set(res.task);
-          console.log('Task gefunden:', this.task());
-        }
-        this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('Fehler beim Laden der Task');
-        this.task.set(null);
-        console.log('Fehler beim Laden der Task');
-        this.loading.set(false);
-      },
-    });
+          this.permissions.set({ canEdit: false, canDelete: false });
+          this.loading.set(false);
+        },
+      });
+  }
+
+  onEdit() {
+    const currentTask = this.task();
+    if (!currentTask || !this.permissions().canEdit) {
+      return;
+    }
+
+    alert('Bearbeiten wird im naechsten Schritt angebunden.');
+  }
+
+  onDelete() {
+    const userId = Number(localStorage.getItem('userId'));
+    const currentTask = this.task();
+
+    if (!currentTask || !Number.isInteger(userId) || userId <= 0 || !this.permissions().canDelete) {
+      return;
+    }
+
+    const confirmed = window.confirm('Task wirklich löschen?');
+    if (!confirmed) {
+      return;
+    }
+
+    this.http
+      .post<{ message: string }>('http://localhost:3000/api/tasks/delete', {
+        task_id: currentTask.task_id,
+        user_id: userId,
+      })
+      .subscribe({
+        next: (res) => {
+          alert(res.message || 'Task erfolgreich gelöscht');
+          this.goBack();
+        },
+        error: (err) => {
+          alert(err.error?.message || 'Task konnte nicht gelöscht werden');
+        },
+      });
   }
 
   goBack() {
