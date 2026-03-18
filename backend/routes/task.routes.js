@@ -4,7 +4,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-const allowedStatus = ['To Do', 'In Progress', 'Done'];
+const allowedStatus = ['To Do', 'In Progress', 'Done', 'Blocked'];
 const allowedPriority = ['Low', 'Medium', 'High'];
 
 router.post('/create', async (req, res) => {

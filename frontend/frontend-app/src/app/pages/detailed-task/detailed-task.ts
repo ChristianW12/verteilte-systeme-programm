@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
 type TaskDetail = {
@@ -22,6 +22,7 @@ type TaskDetail = {
 })
 export class DetailedTask implements OnInit {
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
 
   task: TaskDetail | null = null;
@@ -29,21 +30,29 @@ export class DetailedTask implements OnInit {
   error: string | null = null;
 
   ngOnInit(): void {
-    // Hole die Task-ID aus dem History State (von routerLink [state])
-    const taskId = (window.history.state as any)?.taskId;
+    console.log('Hier wird ngOnInit aufgerufen');
 
-    if (!taskId || !Number.isInteger(taskId) || taskId <= 0) {
-      this.error = 'Ungültige Task-ID';
-      this.loading = false;
-      return;
-    }
+    this.route.paramMap.subscribe((params) => {
+      const routeTaskId = Number(params.get('id'));
+      const stateTaskId = Number((window.history.state as any)?.taskId);
+      const taskId = Number.isInteger(routeTaskId) && routeTaskId > 0 ? routeTaskId : stateTaskId;
 
-    this.loadTask(taskId);
+      if (!taskId || !Number.isInteger(taskId) || taskId <= 0) {
+        this.error = 'Ungültige Task-ID';
+        this.loading = false;
+        return;
+      }
+
+      this.loading = true;
+      this.error = null;
+      this.loadTask(taskId);
+    });
   }
 
   loadTask(id: number) {
     this.http.get<{ task?: TaskDetail }>(`http://localhost:3000/api/tasks/${id}`).subscribe({
       next: (res) => {
+        console.log('Wir befinden ins in der API Anfrage')
         if (!res.task) {
           this.error = 'Task nicht gefunden';
         } else {
