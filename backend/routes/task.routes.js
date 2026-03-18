@@ -108,7 +108,8 @@ router.get('/project/:projectId', async (req, res) => {
               t.title,
               t.status,
               t.deadline,
-              assignee.email AS assigned_to
+              assignee.email AS assigned_to,
+              t.created_by
        FROM tasks t
        LEFT JOIN users assignee ON assignee.user_id = t.assigned_to
        WHERE t.project_id = ?
