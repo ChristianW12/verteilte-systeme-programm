@@ -18,6 +18,7 @@
 
 ### Sonstiges
 - Einheitliches Design anpassen
+- Einheitliches leichtes blau wie bei Projekt erstellen hinzufügen, projektweit
 
 
 ## für Später

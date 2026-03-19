@@ -15,6 +15,35 @@ router.post("/delete", async (req, res) => {});
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Project bearbeiten darf
 router.post("/edit", async (req, res) => {});
 
+router.get("/member-search", async (req, res) => {
+  const query = String(req.query.query || "").trim();
+
+  if (query.length < 2) {
+    return res.status(200).json({ users: [] });
+  }
+
+  try {
+    const [rows] = await db.execute(
+      `SELECT user_id, email
+       FROM users
+       WHERE email LIKE CONCAT('%', ?, '%')
+       ORDER BY email ASC
+       LIMIT 8`,
+      [query],
+    );
+
+    return res.status(200).json({
+      users: rows.map((row) => ({
+        user_id: row.user_id,
+        email: row.email,
+      })),
+    });
+  } catch (error) {
+    console.error("Fehler bei der Member-Suche:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
+  }
+});
+
 router.get("/get/:userId", async (req, res) => {
   const userId = Number(req.params.userId);
 
