@@ -5,6 +5,7 @@ export type ProjectCardData = {
   name: string;
   created_by?: string;
   admin_id?: number;
+  role?: 'Developer' | 'Admin' | 'Viewer';
 };
 
 @Component({

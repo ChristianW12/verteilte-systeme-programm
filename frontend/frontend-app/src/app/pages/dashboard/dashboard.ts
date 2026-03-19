@@ -4,12 +4,15 @@ import { TaskCard, TaskCardData } from '../../shared/components/task-card/task-c
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
+type ProjectRole = 'Developer' | 'Admin' | 'Viewer';
+
 type ProjectApiItem = {
   project_id: number;
   name: string;
   description: string;
   created_by: string;
   admin_id: number;
+  role?: ProjectRole;
 };
 
 type GetProjectsResponse = {
@@ -48,6 +51,8 @@ export class Dashboard implements OnInit {
   selectedProjectName = signal<string>('Kein Projekt ausgewaehlt');
   tasks = signal<TaskCardData[]>([]);
 
+  selectedProject = computed(() => this.projects().find((project) => project.project_id === this.selectedProjectId()) ?? null);
+
   todoTasks = computed(() => this.tasks().filter((task) => task.status === 'To Do'));
   inProgressTasks = computed(() => this.tasks().filter((task) => task.status === 'In Progress'));
   doneTasks = computed(() => this.tasks().filter((task) => task.status === 'Done'));
@@ -70,8 +75,9 @@ export class Dashboard implements OnInit {
             project_id: project.project_id,
             name: project.name,
             created_by: project.created_by,
-            // Hier wird noch zusätzlich die ID des Admins gespeichert, hilft uns später wenn wir ein Projekt bearbeiten Button einfügen möchte 
+            // Hier wird noch zusätzlich die ID des Admins gespeichert, hilft uns später wenn wir ein Projekt bearbeiten Button einfügen möchte
             admin_id: project.admin_id,
+            role: project.role,
           })),
         );
         this.userIdResponse.set(response.userId);
@@ -99,6 +105,11 @@ export class Dashboard implements OnInit {
 
   canUserEditProject(project: ProjectCardData): boolean {
     return project.admin_id === Number(this.userId);
+  }
+
+  canShowMyTasksForSelectedProject(): boolean {
+    const project = this.selectedProject();
+    return project?.role === 'Admin' || project?.role === 'Developer';
   }
 
 
