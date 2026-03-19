@@ -80,7 +80,8 @@ INSERT INTO project_members (project_id, user_id, role) VALUES
 (1, 2, 'Developer'),
 (1, 3, 'Developer'),
 (2, 1, 'Admin'),
-(2, 3, 'Developer');
+(2, 3, 'Developer'),
+(2, 2, 'Viewer');
 
 -- Aufgaben für Projekt 1
 INSERT INTO tasks (project_id, title, description, status, assigned_to, created_by) VALUES 

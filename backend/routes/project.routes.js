@@ -53,7 +53,7 @@ router.get("/get/:userId", async (req, res) => {
 
   try {
     const [projects] = await db.query(
-      `select p.project_id, p.name, p.description, u.email, u.user_id, p.created_by, u_created.email as email_creator
+      `select p.project_id, p.name, p.description, u.email, u.user_id, p.created_by, u_created.email as email_creator, pm.role
       from project_members pm 
       join users u on  pm.user_id = u.user_id
       join projects p on pm.project_id = p.project_id
@@ -70,6 +70,7 @@ router.get("/get/:userId", async (req, res) => {
         description: p.description,
         created_by: p.email_creator,
         admin_id: p.created_by,
+        role: p.role,
       })),
     };
 
