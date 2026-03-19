@@ -8,8 +8,16 @@ type UserSuggestion = {
   email: string;
 };
 
+type MemberRole = 'Admin' | 'Developer' | 'Viewer';
+
+type CreateProjectResponse = {
+  message: string;
+  project_id?: number;
+};
+
 type MemberField = {
   email: string;
+  role: MemberRole;
   suggestions: UserSuggestion[];
   showSuggestions: boolean;
   debounceTimer: ReturnType<typeof setTimeout> | null;
@@ -23,9 +31,14 @@ type MemberField = {
   styleUrl: './create-project.css',
 })
 export class CreateProject {
+  projectTitle = '';
+  projectDescription = '';
+  isSubmitting = false;
+
   memberFields: MemberField[] = [
     {
       email: '',
+      role: 'Viewer',
       suggestions: [],
       showSuggestions: false,
       debounceTimer: null,
@@ -37,6 +50,7 @@ export class CreateProject {
   addMemberField(): void {
     this.memberFields.push({
       email: '',
+      role: 'Viewer',
       suggestions: [],
       showSuggestions: false,
       debounceTimer: null,
@@ -127,4 +141,60 @@ export class CreateProject {
       field.debounceTimer = null;
     }
   }
+
+  onSubmit(): void {
+    const createdByRaw = localStorage.getItem('userId');
+    const createdBy = Number(createdByRaw);
+
+    if (!createdByRaw || !Number.isInteger(createdBy) || createdBy <= 0) {
+      alert('Bitte zuerst einloggen.');
+      return;
+    }
+
+    const name = this.projectTitle.trim();
+    if (!name) {
+      alert('Bitte einen Projekttitel eingeben.');
+      return;
+    }
+
+    const members = this.memberFields
+      .map((field) => ({
+        email: field.email.trim(),
+        role: field.role,
+      }))
+      .filter((member) => member.email.length > 0);
+
+    this.isSubmitting = true;
+
+    this.http
+      .post<CreateProjectResponse>('http://localhost:3000/api/project/create', {
+        name,
+        description: this.projectDescription.trim(),
+        createdBy,
+        members,
+      })
+      .subscribe({
+        next: (response) => {
+          alert(response.message || 'Projekt erfolgreich erstellt.');
+          this.projectTitle = '';
+          this.projectDescription = '';
+          this.memberFields = [
+            {
+              email: '',
+              role: 'Viewer',
+              suggestions: [],
+              showSuggestions: false,
+              debounceTimer: null,
+            },
+          ];
+          this.isSubmitting = false;
+        },
+        error: (error) => {
+          alert(error?.error?.message || 'Projekt konnte nicht erstellt werden.');
+          this.isSubmitting = false;
+        },
+      });
+  }
+
 }
+
