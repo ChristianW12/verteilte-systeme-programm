@@ -7,7 +7,7 @@ const db = require('../db');
 const allowedStatus = ['To Do', 'In Progress', 'Done', 'Blocked'];
 const allowedPriority = ['Low', 'Medium', 'High'];
 
-export async function getTaskPermissionContext(taskId, userId) {
+async function getTaskPermissionContext(taskId, userId) {
   const [taskRows] = await db.execute(
     `SELECT task_id, project_id, assigned_to
      FROM tasks
