@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, OnInit, inject } from '@angular/core';
+import {Component, OnInit, inject, signal} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 type Project = {
@@ -24,7 +24,7 @@ type CreateTaskResponse = {
   styleUrl: './create-task.css',
 })
 export class CreateTask implements OnInit {
-  projects: Project[] = [];
+  projects = signal<Project[]>([]);
 
   projectId = '';
   title = '';
@@ -47,7 +47,7 @@ export class CreateTask implements OnInit {
 
     this.http.post<ProjectsResponse>('http://localhost:3000/api/tasks/get', {}).subscribe({
       next: (response) => {
-        this.projects = response.projects ?? [];
+        this.projects.set(response.projects ?? []);
       },
       error: () => {
         alert('Projekte konnten nicht geladen werden.');
