@@ -66,7 +66,7 @@ export class Dashboard implements OnInit {
 
   private getFilteredTasks(): TaskCardData[] {
     const allTasks = this.tasks();
-    if (!this.showOnlyMyTasks()) {
+    if (!this.showOnlyMyTasks() || !this.canShowMyTasksForSelectedProject()) {
       return allTasks;
     }
 
@@ -138,6 +138,12 @@ export class Dashboard implements OnInit {
   selectProject(project: ProjectCardData): void {
     this.selectedProjectId.set(project.project_id);
     this.selectedProjectName.set(project.name);
+
+    // Filter darf in Viewer-Projekten nicht aktiv bleiben.
+    if (project.role !== 'Admin' && project.role !== 'Developer') {
+      this.showOnlyMyTasks.set(false);
+    }
+
     this.loadTasksForProject(project.project_id);
   }
 
