@@ -347,6 +347,7 @@ router.get('/project/:projectId', async (req, res) => {
               t.title,
               t.status,
               t.deadline,
+              t.assigned_to AS assigned_to_id,
               assignee.email AS assigned_to,
               t.created_by
        FROM tasks t

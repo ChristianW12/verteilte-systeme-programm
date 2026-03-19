@@ -6,7 +6,8 @@ export type TaskCardData = {
   task_id: number;
   title: string;
   status: 'To Do' | 'In Progress' | 'Done' | 'Blocked';
-  assigned_to?: string | null;
+  assigned_to_email?: string | null;
+  assigned_to_id?: number | null;
   deadline?: string | null;
 };
 

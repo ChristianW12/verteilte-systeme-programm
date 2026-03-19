@@ -25,7 +25,9 @@ type TaskApiItem = {
   project_id: number;
   title: string;
   status: 'To Do' | 'In Progress' | 'Done' | 'Blocked';
+  assigned_to_email?: string | null;
   assigned_to?: string | null;
+  assigned_to_id?: number | null;
   deadline?: string | null;
 };
 
@@ -53,12 +55,28 @@ export class Dashboard implements OnInit {
 
   selectedProject = computed(() => this.projects().find((project) => project.project_id === this.selectedProjectId()) ?? null);
 
-  todoTasks = computed(() => this.tasks().filter((task) => task.status === 'To Do'));
-  inProgressTasks = computed(() => this.tasks().filter((task) => task.status === 'In Progress'));
-  doneTasks = computed(() => this.tasks().filter((task) => task.status === 'Done'));
-  blockedTasks = computed(() => this.tasks().filter((task) => task.status === 'Blocked'));
+  showOnlyMyTasks = signal(false);
+
+  todoTasks = computed(() => this.getFilteredTasks().filter((task) => task.status === 'To Do'));
+  inProgressTasks = computed(() => this.getFilteredTasks().filter((task) => task.status === 'In Progress'));
+  doneTasks = computed(() => this.getFilteredTasks().filter((task) => task.status === 'Done'));
+  blockedTasks = computed(() => this.getFilteredTasks().filter((task) => task.status === 'Blocked'));
 
   private userIdResponse = signal<number | null>(null);
+
+  private getFilteredTasks(): TaskCardData[] {
+    const allTasks = this.tasks();
+    if (!this.showOnlyMyTasks()) {
+      return allTasks;
+    }
+
+    const currentUserId = Number(this.userId);
+    if (!Number.isInteger(currentUserId) || currentUserId <= 0) {
+      return allTasks;
+    }
+
+    return allTasks.filter((task) => task.assigned_to_id === currentUserId);
+  }
 
 
   ngOnInit(): void {
@@ -112,6 +130,10 @@ export class Dashboard implements OnInit {
     return project?.role === 'Admin' || project?.role === 'Developer';
   }
 
+  toggleMyTasksFilter(): void {
+    this.showOnlyMyTasks.update((current) => !current);
+  }
+
 
   selectProject(project: ProjectCardData): void {
     this.selectedProjectId.set(project.project_id);
@@ -127,7 +149,8 @@ export class Dashboard implements OnInit {
             task_id: task.task_id,
             title: task.title,
             status: task.status,
-            assigned_to: task.assigned_to,
+            assigned_to_email: task.assigned_to_email ?? task.assigned_to ?? null,
+            assigned_to_id: task.assigned_to_id ?? null,
             deadline: task.deadline,
           })),
         );
@@ -139,4 +162,3 @@ export class Dashboard implements OnInit {
     });
   }
 }
-

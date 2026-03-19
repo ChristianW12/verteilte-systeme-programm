@@ -13,8 +13,7 @@
 - Rollen im Projekt hinzufügen (evtl. mit eigener Ansicht für Mitglieder in einem Projekt) (Christian)
 
 ### Task
-- Task bearbeiten im Backend + Frontend anlegen (Alex)
-- Meine Tasks: Filter auf das Dashboard, nur die einem selbst zugewiesenen Tasks sollen angezeigt werden (Alex)
+- Alle Aufgaben für die Tasks erledigt ✅
 
 ### Sonstiges
 - Einheitliches Design anpassen
