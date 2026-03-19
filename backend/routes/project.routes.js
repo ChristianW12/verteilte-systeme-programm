@@ -4,8 +4,109 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
-// TODO: create route for creating a new project
-router.post("/create", async (req, res) => {});
+router.post("/create", async (req, res) => {
+  const { name, description, createdBy, members } = req.body;
+
+  const createdById = Number(createdBy);
+  if (!name || !String(name).trim()) {
+    return res.status(400).json({ message: "Projektname ist erforderlich" });
+  }
+
+  if (!Number.isInteger(createdById) || createdById <= 0) {
+    return res.status(400).json({ message: "Ungueltige createdBy-ID" });
+  }
+
+  const allowedRoles = new Set(["Admin", "Developer", "Viewer"]);
+  const rawMembers = Array.isArray(members) ? members : [];
+  const normalizedMembers = rawMembers
+    .map((member) => ({
+      email: String(member?.email || "").trim().toLowerCase(),
+      role: allowedRoles.has(member?.role) ? member.role : "Viewer",
+    }))
+    .filter((member) => member.email.length > 0);
+
+  const uniqueMembersMap = new Map();
+  for (const member of normalizedMembers) {
+    uniqueMembersMap.set(member.email, member);
+  }
+  const uniqueMembers = Array.from(uniqueMembersMap.values());
+
+  try {
+    let usersByEmail = new Map();
+
+    if (uniqueMembers.length > 0) {
+      const placeholders = uniqueMembers.map(() => "?").join(", ");
+      const [userRows] = await db.query(
+        `SELECT user_id, email FROM users WHERE email IN (${placeholders})`,
+        uniqueMembers.map((member) => member.email),
+      );
+
+      usersByEmail = new Map(
+        userRows.map((user) => [String(user.email).toLowerCase(), user]),
+      );
+
+      const missingEmails = uniqueMembers
+        .filter((member) => !usersByEmail.has(member.email))
+        .map((member) => member.email);
+
+      if (missingEmails.length > 0) {
+        return res.status(400).json({
+          message: "Folgende E-Mails wurden nicht gefunden",
+          missingEmails,
+        });
+      }
+    }
+
+    const connection = await db.getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const [insertProjectResult] = await connection.execute(
+        "INSERT INTO projects (name, description, created_by) VALUES (?, ?, ?)",
+        [String(name).trim(), String(description || "").trim() || null, createdById],
+      );
+
+      const projectId = insertProjectResult.insertId;
+
+      await connection.execute(
+        "INSERT INTO project_members (project_id, user_id, role) VALUES (?, ?, 'Admin') ON DUPLICATE KEY UPDATE role = 'Admin'",
+        [projectId, createdById],
+      );
+
+      for (const member of uniqueMembers) {
+        const user = usersByEmail.get(member.email);
+        if (!user) {
+          continue;
+        }
+
+        if (Number(user.user_id) === createdById) {
+          continue;
+        }
+
+        await connection.execute(
+          "INSERT INTO project_members (project_id, user_id, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = VALUES(role)",
+          [projectId, user.user_id, member.role],
+        );
+      }
+
+      await connection.commit();
+
+      return res.status(201).json({
+        message: "Projekt erfolgreich erstellt",
+        project_id: projectId,
+      });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error("Fehler beim Erstellen des Projekts:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
+  }
+});
 
 // TODO: delete route for deleting a project
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Project löschen darf
