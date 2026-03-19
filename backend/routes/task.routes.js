@@ -7,7 +7,7 @@ const db = require('../db');
 const allowedStatus = ['To Do', 'In Progress', 'Done', 'Blocked'];
 const allowedPriority = ['Low', 'Medium', 'High'];
 
-async function getTaskPermissionContext(taskId, userId) {
+export async function getTaskPermissionContext(taskId, userId) {
   const [taskRows] = await db.execute(
     `SELECT task_id, project_id, assigned_to
      FROM tasks
@@ -38,6 +38,7 @@ async function getTaskPermissionContext(taskId, userId) {
     role: rawRole || null,
     canEdit: isAdmin || isAssignedDeveloper,
     canDelete: isAdmin || isAssignedDeveloper,
+    canEditAssignee: isAdmin,
   };
 }
 
@@ -155,7 +156,7 @@ router.post('/delete', async (req, res) => {
 // TODO: edit route for editing a task
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Task bearbeiten darf
 router.post('/edit', async (req, res) => {
-  const { task_id, user_id, title, description, status, priority, deadline } = req.body;
+  const { task_id, user_id, title, description, status, priority, deadline, assigned_to } = req.body;
 
   const taskId = Number(task_id);
   const userId = Number(user_id);
@@ -193,20 +194,89 @@ router.post('/edit', async (req, res) => {
       return res.status(403).json({ message: 'Keine Berechtigung zum Bearbeiten dieser Task' });
     }
 
+    let nextAssignedTo = permissions.task.assigned_to;
+
+    if (assigned_to !== undefined) {
+      if (!permissions.canEditAssignee) {
+        return res.status(403).json({ message: 'Nur Admin darf den Bearbeiter aendern' });
+      }
+
+      if (assigned_to === null || assigned_to === '') {
+        nextAssignedTo = null;
+      } else {
+        const parsedAssignedTo = Number(assigned_to);
+        if (!Number.isInteger(parsedAssignedTo) || parsedAssignedTo <= 0) {
+          return res.status(400).json({ message: 'assigned_to muss eine gueltige Zahl oder leer sein' });
+        }
+
+        const [assigneeRows] = await db.execute(
+          `SELECT pm.user_id
+           FROM project_members pm
+           WHERE pm.project_id = ?
+             AND pm.user_id = ?
+             AND pm.role IN ('Admin', 'Developer')`,
+          [permissions.task.project_id, parsedAssignedTo],
+        );
+
+        if (assigneeRows.length === 0) {
+          return res.status(400).json({ message: 'Der Bearbeiter ist kein gueltiges Projektmitglied' });
+        }
+
+        nextAssignedTo = parsedAssignedTo;
+      }
+    }
+
     await db.execute(
       `UPDATE tasks
        SET title = ?,
            description = ?,
            status = ?,
            priority = ?,
-           deadline = ?
+           deadline = ?,
+           assigned_to = ?
        WHERE task_id = ?`,
-      [cleanTitle, cleanDescription, nextStatus, nextPriority, nextDeadline, taskId],
+      [cleanTitle, cleanDescription, nextStatus, nextPriority, nextDeadline, nextAssignedTo, taskId],
     );
 
     return res.status(200).json({ message: 'Task erfolgreich bearbeitet' });
   } catch (error) {
     console.error('Fehler beim Bearbeiten der Task:', error);
+    return res.status(500).json({ message: 'Interner Serverfehler' });
+  }
+});
+
+router.get('/:id/assignees', async (req, res) => {
+  const taskId = Number(req.params.id);
+  const userId = Number(req.query.user_id);
+
+  if (!Number.isInteger(taskId) || taskId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: 'Ungueltige taskId oder user_id' });
+  }
+
+  try {
+    const permissions = await getTaskPermissionContext(taskId, userId);
+
+    if (!permissions.task) {
+      return res.status(404).json({ message: 'Task nicht gefunden' });
+    }
+
+    if (!permissions.canEditAssignee) {
+      return res.status(403).json({ message: 'Nur Admin darf Bearbeiter laden' });
+    }
+
+    const [assignees] = await db.execute(
+      `SELECT u.user_id, u.email
+       FROM project_members pm
+       JOIN users u ON u.user_id = pm.user_id
+       WHERE pm.project_id = ?
+         AND pm.role IN ('Admin', 'Developer')
+       ORDER BY u.email ASC`,
+      [permissions.task.project_id],
+    );
+
+    return res.status(200).json({ assignees });
+  } catch (error) {
+    console.error('Fehler beim Laden der Bearbeiter:', error);
     return res.status(500).json({ message: 'Interner Serverfehler' });
   }
 });
@@ -242,15 +312,17 @@ router.get('/:id', async (req, res) => {
       priority: task.priority,
       deadline: task.deadline,
       assigned_to: task.assigned_to_email || null,
+      assigned_to_id: task.assigned_to || null,
     };
 
-    let permissions = { canEdit: false, canDelete: false };
+    let permissions = { canEdit: false, canDelete: false, canEditAssignee: false };
 
     if (Number.isInteger(userId) && userId > 0) {
       const permissionContext = await getTaskPermissionContext(taskId, userId);
       permissions = {
         canEdit: permissionContext.canEdit,
         canDelete: permissionContext.canDelete,
+        canEditAssignee: permissionContext.canEditAssignee,
       };
     }
 
@@ -305,3 +377,4 @@ router.post('/get', async (_req, res) => {
 });
 
 module.exports = router;
+

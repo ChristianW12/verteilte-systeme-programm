@@ -14,7 +14,6 @@
 
 ### Task
 - Task bearbeiten im Backend + Frontend anlegen (Alex)
-- Task löschen im Backend + Frontend anlegen (Alex)
 - Meine Tasks: Filter auf das Dashboard, nur die einem selbst zugewiesenen Tasks sollen angezeigt werden (Alex)
 
 ### Sonstiges
