@@ -13,8 +13,7 @@
 - Rollen im Projekt hinzufügen (evtl. mit eigener Ansicht für Mitglieder in einem Projekt) (Christian)
 
 ### Task
-- Bugfixes: Task erstellen nur bei Projekten möglich, bei denen man Mitglied ist 
-- Beim Task Erstellen soll der Bearbeiter werden, der die Aufgabe erstellt
+- ?Bugfixes?
 
 ### Sonstiges
 - Einheitliches Design anpassen
