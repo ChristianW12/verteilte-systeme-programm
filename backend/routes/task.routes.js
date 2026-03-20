@@ -364,10 +364,23 @@ router.get('/project/:projectId', async (req, res) => {
   }
 });
 
-router.post('/get', async (_req, res) => {
+router.post('/get', async (req, res) => {
+  const { user_id } = req.body;
+  const userId = Number(user_id);
+
+  if (!Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: 'user_id muss eine gueltige Zahl sein' });
+  }
+
   try {
     const [projects] = await db.execute(
-      'SELECT project_id, name FROM projects ORDER BY name ASC',
+      `SELECT p.project_id, p.name
+       FROM projects p
+       JOIN project_members pm ON p.project_id = pm.project_id
+       WHERE pm.user_id = ?
+         AND LOWER(pm.role) IN ('admin', 'developer')
+       ORDER BY p.name ASC`,
+      [userId],
     );
 
     return res.json({ projects });

@@ -49,7 +49,13 @@ export class CreateTask implements OnInit {
     const day = String(today.getDate()).padStart(2, '0');
     this.minDate = `${year}-${month}-${day}`;
 
-    this.http.post<ProjectsResponse>('http://localhost:3000/api/tasks/get', {}).subscribe({
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      alert('Bitte zuerst einloggen.');
+      return;
+    }
+
+    this.http.post<ProjectsResponse>('http://localhost:3000/api/tasks/get', { user_id: Number(userId) }).subscribe({
       next: (response) => {
         this.projects.set(response.projects ?? []);
       },
