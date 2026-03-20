@@ -43,7 +43,7 @@ async function getTaskPermissionContext(taskId, userId) {
 }
 
 router.post('/create', async (req, res) => {
-  const { project_id, title, description, status, priority, deadline, created_by } = req.body;
+  const { project_id, title, description, status, priority, deadline, created_by, assigned_to } = req.body;
 
   if (!project_id || !title || !created_by) {
     return res.status(400).json({
@@ -58,6 +58,7 @@ router.post('/create', async (req, res) => {
   const taskStatus = status || 'To Do';
   const taskPriority = priority || 'Medium';
   const taskDeadline = deadline || null;
+  const assignedToId = assigned_to ? Number(assigned_to) : null;
 
   if (!Number.isInteger(projectId) || projectId <= 0 || !Number.isInteger(createdBy) || createdBy <= 0) {
     return res.status(400).json({
@@ -68,6 +69,18 @@ router.post('/create', async (req, res) => {
   if (!cleanTitle) {
     return res.status(400).json({
       message: 'Titel darf nicht leer sein',
+    });
+  }
+
+  if (cleanTitle.length > 50) {
+    return res.status(400).json({
+      message: 'Titel darf maximal 50 Zeichen lang sein',
+    });
+  }
+
+  if (cleanDescription && cleanDescription.length > 1000) {
+    return res.status(400).json({
+      message: 'Beschreibung darf maximal 1000 Zeichen lang sein',
     });
   }
 
@@ -102,6 +115,22 @@ router.post('/create', async (req, res) => {
       return res.status(404).json({ message: 'Benutzer nicht gefunden' });
     }
 
+    // Wenn assigned_to gesetzt ist, prüfe ob der Bearbeiter ein gültiges Projektmitglied ist
+    if (assignedToId) {
+      const [assigneeRows] = await db.execute(
+        `SELECT pm.user_id
+         FROM project_members pm
+         WHERE pm.project_id = ?
+           AND pm.user_id = ?
+           AND LOWER(pm.role) IN ('admin', 'developer')`,
+        [projectId, assignedToId],
+      );
+
+      if (assigneeRows.length === 0) {
+        return res.status(400).json({ message: 'Der Bearbeiter ist kein gueltiges Projektmitglied' });
+      }
+    }
+
     await db.execute(
       `INSERT INTO tasks (
         project_id,
@@ -110,9 +139,10 @@ router.post('/create', async (req, res) => {
         status,
         priority,
         deadline,
-        created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [projectId, cleanTitle, cleanDescription, taskStatus, taskPriority, taskDeadline, createdBy],
+        created_by,
+        assigned_to
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [projectId, cleanTitle, cleanDescription, taskStatus, taskPriority, taskDeadline, createdBy, assignedToId],
     );
 
     return res.status(201).json({ message: 'Task erfolgreich erstellt' });
@@ -173,6 +203,18 @@ router.post('/edit', async (req, res) => {
 
   if (!cleanTitle) {
     return res.status(400).json({ message: 'Titel darf nicht leer sein' });
+  }
+
+  if (cleanTitle.length > 50) {
+    return res.status(400).json({
+      message: 'Titel darf maximal 50 Zeichen lang sein',
+    });
+  }
+
+  if (cleanDescription && cleanDescription.length > 1000) {
+    return res.status(400).json({
+      message: 'Beschreibung darf maximal 1000 Zeichen lang sein',
+    });
   }
 
   if (!allowedStatus.includes(nextStatus)) {

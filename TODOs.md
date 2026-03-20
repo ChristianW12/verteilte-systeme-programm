@@ -2,21 +2,23 @@
 
 ### Profil
 - Profil-Bearbeiten Seite anlegen (Christian)
-- Profil löschen Seite einfügen (Christian)
+- Ausloggen Button hinzufügen (Christian)
 
 ### Projekt
+- Projekt-Erstellen Seite anlegen (Christian)
+    - Nutzer hinzufügen über Email (Christian)
+    - User gibt in Suchleiste Email ein, und nach Ablauf einer Wartezeit soll anfrage auf datenbank gemacht werden mit dieser Email, ob diese Adresse exisitiert (Christian)
 - Projekt-Bearbeiten Seite anlegen (Christian)
 - Projekt löschen Button hinzufügen (Christian)
 - Rollen im Projekt hinzufügen (evtl. mit eigener Ansicht für Mitglieder in einem Projekt) (Christian)
 
 ### Task
-- Beim Task Erstellen soll der Bearbeiter werden, der die Aufgabe erstellt
+- ?Bugfixes?
+- Locking?
 
 ### Sonstiges
-- WebSockets integrieren, für Locking von Tasks, die in Bearbeitung sind, damit nicht mehrere Personen gleichzeitig an einem Task arbeiten können
 - Einheitliches Design anpassen
 - Einheitliches leichtes blau wie bei Projekt erstellen hinzufügen, projektweit
-- Redis für Caching von Daten, die häufig abgerufen werden, z.B. Projektinformationen, um die Performance zu verbessern
 
 
 ## für Später

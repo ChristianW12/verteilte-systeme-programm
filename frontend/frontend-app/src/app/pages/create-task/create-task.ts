@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import {Component, OnInit, inject, signal} from '@angular/core';
+import { Component, OnInit, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -11,6 +11,15 @@ type Project = {
 
 type ProjectsResponse = {
   projects: Project[];
+};
+
+type User = {
+  user_id: number;
+  email: string;
+};
+
+type UsersResponse = {
+  users: User[];
 };
 
 type CreateTaskResponse = {
@@ -27,19 +36,34 @@ type CreateTaskResponse = {
 export class CreateTask implements OnInit {
 
   private router = inject(Router);
+  private http = inject(HttpClient);
 
   projects = signal<Project[]>([]);
+  allUsers = signal<User[]>([]);
+  assignees = signal<User[]>([]);
 
   projectId = '';
+  assignedTo = '';
   title = '';
   description = '';
   status = 'To Do';
   priority = 'Medium';
   deadline = '';
-  // minDate für das date input, verhindert Auswahl vergangener Daten
   minDate = '';
 
-  private http = inject(HttpClient);
+  private selectedProjectId = signal<string>('');
+
+  constructor() {
+    // Automatisch Bearbeiter laden, wenn sich selectedProjectId ändert
+    effect(() => {
+      const currentProjectId = this.selectedProjectId();
+      if (currentProjectId) {
+        this.loadAssigneesForProject(Number(currentProjectId));
+      } else {
+        this.assignees.set([]);
+      }
+    });
+  }
 
   ngOnInit(): void {
     // Heutiges Datum im Format YYYY-MM-DD (lokal)
@@ -65,6 +89,25 @@ export class CreateTask implements OnInit {
     });
   }
 
+  loadAssigneesForProject(projectId: number): void {
+    console.log('Laden der Bearbeiter des Projekts:', projectId);
+    this.http.get<UsersResponse>(`http://localhost:3000/api/project/${projectId}/assignees`).subscribe({
+      next: (response) => {
+        console.log('Bearbeiter geladen:', response.users);
+        this.assignees.set(response.users ?? []);
+      },
+      error: (err) => {
+        console.log('Error beim laden der Bearbeiter:', err);
+        this.assignees.set([]);
+      },
+    });
+  }
+
+  updateProjectId(newProjectId: string): void {
+    this.projectId = newProjectId;
+    this.selectedProjectId.set(newProjectId);
+  }
+
   onSubmit(): void {
     const userId = localStorage.getItem('userId');
 
@@ -85,8 +128,12 @@ export class CreateTask implements OnInit {
 
     // Client-seitige Validierung: Deadline darf nicht in der Vergangenheit liegen
     if (this.deadline) {
-      // Beide Strings sind im Format YYYY-MM-DD, daher funktioniert der String-Vergleich
-      if (this.deadline < this.minDate) {
+      const deadlineDate = new Date(this.deadline);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      deadlineDate.setHours(0, 0, 0, 0);
+
+      if (deadlineDate < today) {
         alert('Die Deadline darf nicht in der Vergangenheit liegen.');
         return;
       }
@@ -100,6 +147,7 @@ export class CreateTask implements OnInit {
       priority: this.priority,
       deadline: this.deadline || null,
       created_by: Number(userId),
+      assigned_to: this.assignedTo ? Number(this.assignedTo) : null,
     };
 
     this.http.post<CreateTaskResponse>('http://localhost:3000/api/tasks/create', payload).subscribe({
@@ -107,6 +155,8 @@ export class CreateTask implements OnInit {
         this.router.navigate(['/dashboard']);
         alert(response.message || 'Task erfolgreich erstellt');
         this.projectId = '';
+        this.selectedProjectId.set('');
+        this.assignedTo = '';
         this.title = '';
         this.description = '';
         this.status = '';

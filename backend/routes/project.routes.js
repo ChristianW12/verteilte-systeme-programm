@@ -182,4 +182,29 @@ router.get("/get/:userId", async (req, res) => {
   }
 });
 
+router.get("/:projectId/assignees", async (req, res) => {
+  const projectId = Number(req.params.projectId);
+
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    return res.status(400).json({ message: "Ungueltige projectId" });
+  }
+
+  try {
+    const [users] = await db.execute(
+      `SELECT u.user_id, u.email
+       FROM project_members pm
+       JOIN users u ON pm.user_id = u.user_id
+       WHERE pm.project_id = ?
+         AND LOWER(pm.role) IN ('admin', 'developer')
+       ORDER BY u.email ASC`,
+      [projectId],
+    );
+
+    return res.status(200).json({ users });
+  } catch (error) {
+    console.error("Fehler beim Laden der Assignees:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
+  }
+});
+
 module.exports = router;
