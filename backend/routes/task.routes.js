@@ -72,6 +72,18 @@ router.post('/create', async (req, res) => {
     });
   }
 
+  if (cleanTitle.length > 50) {
+    return res.status(400).json({
+      message: 'Titel darf maximal 50 Zeichen lang sein',
+    });
+  }
+
+  if (cleanDescription && cleanDescription.length > 1000) {
+    return res.status(400).json({
+      message: 'Beschreibung darf maximal 1000 Zeichen lang sein',
+    });
+  }
+
   if (!allowedStatus.includes(taskStatus)) {
     return res.status(400).json({
       message: 'Ungueltiger Status',
@@ -191,6 +203,18 @@ router.post('/edit', async (req, res) => {
 
   if (!cleanTitle) {
     return res.status(400).json({ message: 'Titel darf nicht leer sein' });
+  }
+
+  if (cleanTitle.length > 50) {
+    return res.status(400).json({
+      message: 'Titel darf maximal 50 Zeichen lang sein',
+    });
+  }
+
+  if (cleanDescription && cleanDescription.length > 1000) {
+    return res.status(400).json({
+      message: 'Beschreibung darf maximal 1000 Zeichen lang sein',
+    });
   }
 
   if (!allowedStatus.includes(nextStatus)) {
