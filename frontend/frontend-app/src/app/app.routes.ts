@@ -5,10 +5,11 @@ import { Login } from './pages/login/login';
 import { CreateTask } from './pages/create-task/create-task';
 import { Profile } from './pages/profile/profile';
 import { DetailedTask } from './pages/detailed-task/detailed-task';
-import { authGuard } from './auth.guard'; 
+import { authGuard } from './auth.guard';
 import { Signup } from './pages/signup/signup';
 import { Project } from './pages/project/project';
 import { CreateProject } from './pages/create-project/create-project';
+import { EditProject } from './pages/edit-project/edit-project';
 
 export const routes: Routes = [
   { path: '', component: Home },
@@ -18,7 +19,8 @@ export const routes: Routes = [
   { path: 'task/create', component: CreateTask, canActivate: [authGuard] }, // Geschützt
   { path: 'task/:id', component: DetailedTask, canActivate: [authGuard] }, // Detailseite für Tasks
   { path: 'project', component: Project, canActivate: [authGuard] },
-  {path: 'project/create', component: CreateProject, canActivate: [authGuard]}, 
+  {path: 'project/create', component: CreateProject, canActivate: [authGuard]},
+  {path: '/project/edit', component: EditProject, canActivate: [authGuard]},
   { path: 'profile', component: Profile, canActivate: [authGuard] }, // Geschützt
   { path: '**', component: Home },
 ];
