@@ -13,14 +13,15 @@ import { EditProject } from './pages/edit-project/edit-project';
 
 export const routes: Routes = [
   { path: '', component: Home },
-  { path: 'dashboard', component: Dashboard, canActivate: [authGuard] }, // Geschützt
+  { path: 'dashboard', component: Dashboard, canActivate: [authGuard] },
   { path: 'login', component: Login },
   { path: 'signup', component: Signup },
-  { path: 'task/create', component: CreateTask, canActivate: [authGuard] }, // Geschützt
-  { path: 'task/:id', component: DetailedTask, canActivate: [authGuard] }, // Detailseite für Tasks
+  { path: 'task/create', component: CreateTask, canActivate: [authGuard] },
+  { path: 'task/:id', component: DetailedTask, canActivate: [authGuard] },
   { path: 'project', component: Project, canActivate: [authGuard] },
   {path: 'project/create', component: CreateProject, canActivate: [authGuard]},
-  {path: '/project/edit', component: EditProject, canActivate: [authGuard]},
-  { path: 'profile', component: Profile, canActivate: [authGuard] }, // Geschützt
+  {path: 'project/edit', component: EditProject, canActivate: [authGuard]},
+  { path: 'profile', component: Profile, canActivate: [authGuard] },
+  {path: 'profile/edit', component: EditProject, canActivate: [authGuard]},
   { path: '**', component: Home },
 ];
