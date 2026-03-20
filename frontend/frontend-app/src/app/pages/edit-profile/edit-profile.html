@@ -1,1 +1,67 @@
-<p>edit-profile works!</p>
+<div class="flex justify-center pt-8 p-4">
+  <div class="w-full max-w-2xl">
+    <div class="bg-white shadow-md rounded-lg p-6">
+      <h2 class="text-2xl font-bold mb-6 text-gray-800">Profil bearbeiten</h2>
+
+      <form class="space-y-4">
+        <div>
+          <label for="username" class="block text-sm font-bold text-gray-700 mb-1">
+            Benutzername
+          </label>
+          <input
+            id="username"
+            name="username"
+            type="text"
+            [ngModel]="username()"
+            (ngModelChange)="username.set($event)"
+            class="w-full text-gray-900 bg-gray-50 px-3 py-2 rounded border border-gray-200 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+          />
+        </div>
+
+        <div>
+          <label for="email" class="block text-sm font-bold text-gray-700 mb-1">
+            E-Mail
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            [ngModel]="email()"
+            (ngModelChange)="email.set($event)"
+            class="w-full text-gray-900 bg-gray-50 px-3 py-2 rounded border border-gray-200 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+          />
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-bold text-gray-700 mb-1">
+            Neues Passwort
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            [ngModel]="neuesPassword()"
+            (ngModelChange)="neuesPassword.set($event)"
+            class="w-full text-gray-900 bg-gray-50 px-3 py-2 rounded border border-gray-200 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+          />
+        </div>
+
+        <div class="pt-2 flex flex-wrap justify-center gap-3">
+          <button
+            type="submit"
+            class="rounded-md border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100"
+          >
+            Änderungen speichern
+          </button>
+
+          <button
+            type="button"
+            class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+          >
+            Abbrechen
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

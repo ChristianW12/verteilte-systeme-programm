@@ -1,7 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, inject , signal} from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 
 type ProfileResponse = {
   user: {
@@ -9,12 +9,13 @@ type ProfileResponse = {
     username: string;
     email: string;
     createdAt: string;
+    password: string;
   };
 };
 
 @Component({
   selector: 'app-profile',
-  imports: [DatePipe],
+  imports: [DatePipe, RouterLink],
   templateUrl: './profile.html',
   styleUrl: './profile.css',
 })

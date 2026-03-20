@@ -87,7 +87,7 @@ router.post('/profile', async (req, res) => {
 
   try {
     const [rows] = await db.execute(
-      "SELECT user_id, username, email, created_at FROM users WHERE user_id = ?",
+      "SELECT user_id, username, email, created_at, password FROM users WHERE user_id = ?",
       [userId],
     );
 
@@ -102,6 +102,7 @@ router.post('/profile', async (req, res) => {
         username: user.username,
         email: user.email,
         createdAt: user.created_at,
+        password: user.password,
       },
     });
   } catch (error) {

@@ -10,6 +10,7 @@ import { Signup } from './pages/signup/signup';
 import { Project } from './pages/project/project';
 import { CreateProject } from './pages/create-project/create-project';
 import { EditProject } from './pages/edit-project/edit-project';
+import { EditProfile } from './pages/edit-profile/edit-profile';
 
 export const routes: Routes = [
   { path: '', component: Home },
@@ -22,6 +23,6 @@ export const routes: Routes = [
   {path: 'project/create', component: CreateProject, canActivate: [authGuard]},
   {path: 'project/edit', component: EditProject, canActivate: [authGuard]},
   { path: 'profile', component: Profile, canActivate: [authGuard] },
-  {path: 'profile/edit', component: EditProject, canActivate: [authGuard]},
+  {path: 'profile/edit', component: EditProfile, canActivate: [authGuard]},
   { path: '**', component: Home },
 ];
