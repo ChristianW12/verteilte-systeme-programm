@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {Component, OnInit, inject, signal} from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 type Project = {
   project_id: number;
@@ -24,6 +25,9 @@ type CreateTaskResponse = {
   styleUrl: './create-task.css',
 })
 export class CreateTask implements OnInit {
+
+  private router = inject(Router);
+
   projects = signal<Project[]>([]);
 
   projectId = '';
@@ -94,6 +98,7 @@ export class CreateTask implements OnInit {
 
     this.http.post<CreateTaskResponse>('http://localhost:3000/api/tasks/create', payload).subscribe({
       next: (response) => {
+        this.router.navigate(['/dashboard']);
         alert(response.message || 'Task erfolgreich erstellt');
         this.projectId = '';
         this.title = '';
@@ -101,6 +106,7 @@ export class CreateTask implements OnInit {
         this.status = '';
         this.priority = '';
         this.deadline = '';
+
       },
       error: (err) => {
         alert(err.error?.message || 'Task konnte nicht erstellt werden');
