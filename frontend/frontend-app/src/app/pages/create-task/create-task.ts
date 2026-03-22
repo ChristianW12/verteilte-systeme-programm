@@ -79,7 +79,7 @@ export class CreateTask implements OnInit {
       return;
     }
 
-    this.http.post<ProjectsResponse>('http://localhost:3000/api/tasks/get', { user_id: Number(userId) }).subscribe({
+    this.http.post<ProjectsResponse>('/api/tasks/get', { user_id: Number(userId) }).subscribe({
       next: (response) => {
         this.projects.set(response.projects ?? []);
       },
@@ -91,7 +91,7 @@ export class CreateTask implements OnInit {
 
   loadAssigneesForProject(projectId: number): void {
     console.log('Laden der Bearbeiter des Projekts:', projectId);
-    this.http.get<UsersResponse>(`http://localhost:3000/api/project/${projectId}/assignees`).subscribe({
+    this.http.get<UsersResponse>(`/api/project/${projectId}/assignees`).subscribe({
       next: (response) => {
         console.log('Bearbeiter geladen:', response.users);
         this.assignees.set(response.users ?? []);
@@ -150,7 +150,7 @@ export class CreateTask implements OnInit {
       assigned_to: this.assignedTo ? Number(this.assignedTo) : null,
     };
 
-    this.http.post<CreateTaskResponse>('http://localhost:3000/api/tasks/create', payload).subscribe({
+    this.http.post<CreateTaskResponse>('/api/tasks/create', payload).subscribe({
       next: (response) => {
         this.router.navigate(['/dashboard']);
         alert(response.message || 'Task erfolgreich erstellt');
@@ -170,3 +170,4 @@ export class CreateTask implements OnInit {
     });
   }
 }
+

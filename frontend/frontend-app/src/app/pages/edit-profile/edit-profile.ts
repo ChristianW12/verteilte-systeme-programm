@@ -31,7 +31,7 @@ export class EditProfile implements OnInit {
       return;
     }
 
-    this.http.post('http://localhost:3000/api/auth/profile', { userId: this.userId() })
+    this.http.post('/api/auth/profile', { userId: this.userId() })
       .subscribe({
         next: (response: any) => {
           this.username.set(response.user.username);
@@ -48,3 +48,4 @@ export class EditProfile implements OnInit {
   }
 
 }
+

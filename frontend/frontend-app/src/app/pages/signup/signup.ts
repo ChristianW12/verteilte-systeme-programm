@@ -39,7 +39,7 @@ export class Signup {
       password: this.password,
     };
 
-    this.http.post<SignupResponse>('http://localhost:3000/api/auth/signup', payload).subscribe({
+    this.http.post<SignupResponse>('/api/auth/signup', payload).subscribe({
       next: () => {
         this.isSubmitting = false;
         alert('Registrierung erfolgreich');
@@ -88,3 +88,4 @@ export class Signup {
     return true;
   }
 }
+

@@ -37,7 +37,7 @@ export class Profile {
 
     const userId = localStorage.getItem('userId');
 
-    this.http.post<ProfileResponse>('http://localhost:3000/api/auth/profile', { userId })
+    this.http.post<ProfileResponse>('/api/auth/profile', { userId })
       .subscribe({
         next: (response) => {
           this.email.set(response.user.email);
@@ -61,3 +61,4 @@ export class Profile {
   }
 
 }
+

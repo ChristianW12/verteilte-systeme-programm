@@ -21,3 +21,4 @@ export type TaskCardData = {
 export class TaskCard {
   task = input.required<TaskCardData>();
 }
+

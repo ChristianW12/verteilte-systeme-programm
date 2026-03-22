@@ -86,7 +86,7 @@ export class Dashboard implements OnInit {
     }
 
     // Holt die Daten für die Projekte bei denen der eingeloggte User beteiligt ist
-    this.http.get<GetProjectsResponse>(`http://localhost:3000/api/project/get/${this.userId}`).subscribe({
+    this.http.get<GetProjectsResponse>(`/api/project/get/${this.userId}`).subscribe({
       next: (response) => {
         this.projects.set(
           response.projects.map((project) => ({
@@ -148,7 +148,7 @@ export class Dashboard implements OnInit {
   }
 
   private loadTasksForProject(projectId: number): void {
-    this.http.get<GetTasksResponse>(`http://localhost:3000/api/tasks/project/${projectId}`).subscribe({
+    this.http.get<GetTasksResponse>(`/api/tasks/project/${projectId}`).subscribe({
       next: (response) => {
         this.tasks.set(
           (response.tasks ?? []).map((task) => ({
@@ -168,3 +168,4 @@ export class Dashboard implements OnInit {
     });
   }
 }
+

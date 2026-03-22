@@ -90,7 +90,7 @@ export class DetailedTask implements OnInit {
     const userIdParam = userId ? `?user_id=${Number(userId)}` : '';
 
     this.http
-      .get<{ task?: TaskDetail; permissions?: TaskPermissions }>(`http://localhost:3000/api/tasks/${id}${userIdParam}`)
+      .get<{ task?: TaskDetail; permissions?: TaskPermissions }>(`/api/tasks/${id}${userIdParam}`)
       .subscribe({
         next: (res) => {
           if (!res.task) {
@@ -145,7 +145,7 @@ export class DetailedTask implements OnInit {
     }
 
     this.http
-      .get<{ assignees?: Assignee[] }>(`http://localhost:3000/api/tasks/${taskId}/assignees?user_id=${userId}`)
+      .get<{ assignees?: Assignee[] }>(`/api/tasks/${taskId}/assignees?user_id=${userId}`)
       .subscribe({
         next: (res) => {
           this.assignees.set(res.assignees ?? []);
@@ -202,7 +202,7 @@ export class DetailedTask implements OnInit {
       payload.assigned_to = form.assigned_to ? Number(form.assigned_to) : null;
     }
 
-    this.http.post<{ message: string }>('http://localhost:3000/api/tasks/edit', payload).subscribe({
+    this.http.post<{ message: string }>('/api/tasks/edit', payload).subscribe({
       next: (res) => {
         alert(res.message || 'Task erfolgreich bearbeitet');
         this.isEditMode.set(false);
@@ -234,7 +234,7 @@ export class DetailedTask implements OnInit {
     }
 
     this.http
-      .post<{ message: string }>('http://localhost:3000/api/tasks/delete', {
+      .post<{ message: string }>('/api/tasks/delete', {
         task_id: currentTask.task_id,
         user_id: userId,
       })
@@ -253,3 +253,4 @@ export class DetailedTask implements OnInit {
     this.router.navigate(['/dashboard']);
   }
 }
+

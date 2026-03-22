@@ -32,7 +32,7 @@ export class Login {
       password: this.password
     };
 
-    this.http.post<LoginResponse>('http://localhost:3000/api/auth/login', loginData)
+    this.http.post<LoginResponse>('/api/auth/login', loginData)
       .subscribe({
         next: (response) => {
           console.log('Login erfolgreich:', response);
@@ -63,3 +63,4 @@ export class Login {
       });
   }
 }
+

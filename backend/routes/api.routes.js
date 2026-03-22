@@ -7,6 +7,11 @@ const projectRoutes = require('./project.routes');
 
 const router = express.Router();
 
+// Schneller Health-Check für Reverse-Proxy-/API-Tests
+router.get('/test', (req, res) => {
+    res.status(200).json({ message: 'aufruf war erfolgreich' });
+});
+
 // Sub-Route für alles rund ums Login, Registrierung, etc.
 router.use('/auth', authRoutes);
 

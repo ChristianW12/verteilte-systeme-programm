@@ -7,3 +7,4 @@ import { Component } from '@angular/core';
   styleUrl: './project.css',
 })
 export class Project {}
+

@@ -91,7 +91,7 @@ export class CreateProject {
     field.debounceTimer = setTimeout(() => {
       this.http
         .get<{ users: UserSuggestion[] }>(
-          `http://localhost:3000/api/project/member-search?query=${encodeURIComponent(value)}`,
+          `/api/project/member-search?query=${encodeURIComponent(value)}`,
         )
         .subscribe({
           next: (response) => {
@@ -167,7 +167,7 @@ export class CreateProject {
     this.isSubmitting = true;
 
     this.http
-      .post<CreateProjectResponse>('http://localhost:3000/api/project/create', {
+      .post<CreateProjectResponse>('/api/project/create', {
         name,
         description: this.projectDescription.trim(),
         createdBy,
@@ -197,4 +197,5 @@ export class CreateProject {
   }
 
 }
+
 

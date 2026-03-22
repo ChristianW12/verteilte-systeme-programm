@@ -20,3 +20,5 @@ describe('DetailedTask', () => {
     expect(component).toBeTruthy();
   });
 });
+
+

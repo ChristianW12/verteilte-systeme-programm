@@ -20,7 +20,7 @@ describe('CreateTask', () => {
     component = fixture.componentInstance;
     fixture.detectChanges();
 
-    const req = httpMock.expectOne('http://localhost:3000/api/tasks/get');
+    const req = httpMock.expectOne('/api/tasks/get');
     expect(req.request.method).toBe('POST');
     req.flush({ projects: [] });
 
@@ -35,3 +35,5 @@ describe('CreateTask', () => {
     expect(component).toBeTruthy();
   });
 });
+
+

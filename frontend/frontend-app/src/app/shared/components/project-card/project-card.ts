@@ -18,3 +18,4 @@ export class ProjectCard {
   project = input.required<ProjectCardData>();
   canUserEditProject = input<boolean>(false);
 }
+
