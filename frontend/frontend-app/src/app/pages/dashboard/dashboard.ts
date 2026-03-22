@@ -3,6 +3,7 @@ import { ProjectCard, ProjectCardData } from '../../shared/components/project-ca
 import { TaskCard, TaskCardData } from '../../shared/components/task-card/task-card';
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { CdkDragDrop, DragDropModule, CdkDragStart } from '@angular/cdk/drag-drop';
 
 type ProjectRole = 'Developer' | 'Admin' | 'Viewer';
 
@@ -37,7 +38,7 @@ type GetTasksResponse = {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [ProjectCard, TaskCard, RouterLink],
+  imports: [ProjectCard, TaskCard, RouterLink, DragDropModule],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })
@@ -167,5 +168,38 @@ export class Dashboard implements OnInit {
       },
     });
   }
-}
 
+  drop(event: CdkDragDrop<string>): void {
+    if (event.previousContainer === event.container) {
+      // Innerhalb der gleichen Liste verschoben (Reordering) - hier optional implementierbar
+      return;
+    }
+
+    const task = event.item.data as TaskCardData;
+    const newStatus = event.container.data as 'To Do' | 'In Progress' | 'Done' | 'Blocked';
+
+    // Optimistisches Update im Frontend (damit es sofort "schnappt")
+    this.tasks.update((tasks) =>
+      tasks.map((t) => (t.task_id === task.task_id ? { ...t, status: newStatus } : t)),
+    );
+
+    // Backend Update
+    this.http.post('/api/tasks/edit', {
+      task_id: task.task_id,
+      user_id: Number(this.userId),
+      status: newStatus,
+    }).subscribe({
+      error: (err) => {
+        console.error('Fehler beim Verschieben des Tasks:', err);
+        // Rollback bei Fehler
+        this.tasks.update((tasks) =>
+          tasks.map((t) => (t.task_id === task.task_id ? { ...t, status: task.status } : t)),
+        );
+      },
+    });
+  }
+
+  dragStarted(event: CdkDragStart): void {
+    console.log('Task wird bewegt:', event.source.data);
+  }
+}

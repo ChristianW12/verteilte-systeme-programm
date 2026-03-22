@@ -42,7 +42,7 @@
       }
     </div>
 
-    <div class="flex gap-4 flex-1 min-h-0 overflow-x-auto">
+    <div class="flex gap-4 flex-1 min-h-0 overflow-x-auto" cdkDropListGroup>
 
       <!-- TODO -->
       <div class="flex-1 min-w-48 bg-white rounded-xl shadow-sm flex flex-col">
@@ -50,9 +50,16 @@
           <span class="text-sm font-semibold text-gray-700">TODO</span>
           <span class="text-xs bg-gray-100 text-gray-500 rounded-full px-2 py-0.5">{{ todoTasks().length }}</span>
         </div>
-        <div class="p-3 flex flex-col gap-2 overflow-y-auto flex-1">
+        <div
+          class="p-3 flex flex-col gap-2 overflow-y-auto flex-1"
+          cdkDropList
+          [cdkDropListData]="'To Do'"
+          (cdkDropListDropped)="drop($event)"
+        >
           @for (task of todoTasks(); track task.task_id) {
-            <app-task-card [task]="task"></app-task-card>
+            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
+              <app-task-card [task]="task"></app-task-card>
+            </div>
           } @empty {
             <p class="text-xs text-gray-400">Keine TODO-Tasks</p>
           }
@@ -65,9 +72,16 @@
           <span class="text-sm font-semibold text-blue-600">In Bearbeitung</span>
           <span class="text-xs bg-blue-50 text-blue-500 rounded-full px-2 py-0.5">{{ inProgressTasks().length }}</span>
         </div>
-        <div class="p-3 flex flex-col gap-2 overflow-y-auto flex-1">
+        <div
+          class="p-3 flex flex-col gap-2 overflow-y-auto flex-1"
+          cdkDropList
+          [cdkDropListData]="'In Progress'"
+          (cdkDropListDropped)="drop($event)"
+        >
           @for (task of inProgressTasks(); track task.task_id) {
-            <app-task-card [task]="task"></app-task-card>
+            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
+              <app-task-card [task]="task"></app-task-card>
+            </div>
           } @empty {
             <p class="text-xs text-gray-400">Keine Tasks in Bearbeitung</p>
           }
@@ -80,9 +94,16 @@
           <span class="text-sm font-semibold text-green-600">Fertig</span>
           <span class="text-xs bg-green-50 text-green-500 rounded-full px-2 py-0.5">{{ doneTasks().length }}</span>
         </div>
-        <div class="p-3 flex flex-col gap-2 overflow-y-auto flex-1">
+        <div
+          class="p-3 flex flex-col gap-2 overflow-y-auto flex-1"
+          cdkDropList
+          [cdkDropListData]="'Done'"
+          (cdkDropListDropped)="drop($event)"
+        >
           @for (task of doneTasks(); track task.task_id) {
-            <app-task-card [task]="task"></app-task-card>
+            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
+              <app-task-card [task]="task"></app-task-card>
+            </div>
           } @empty {
             <p class="text-xs text-gray-400">Keine erledigten Tasks</p>
           }
@@ -95,9 +116,16 @@
           <span class="text-sm font-semibold text-red-500">Blockiert</span>
           <span class="text-xs bg-red-50 text-red-400 rounded-full px-2 py-0.5">{{ blockedTasks().length }}</span>
         </div>
-        <div class="p-3 flex flex-col gap-2 overflow-y-auto flex-1">
+        <div
+          class="p-3 flex flex-col gap-2 overflow-y-auto flex-1"
+          cdkDropList
+          [cdkDropListData]="'Blocked'"
+          (cdkDropListDropped)="drop($event)"
+        >
           @for (task of blockedTasks(); track task.task_id) {
-            <app-task-card [task]="task"></app-task-card>
+            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
+              <app-task-card [task]="task"></app-task-card>
+            </div>
           } @empty {
             <p class="text-xs text-gray-400">Keine blockierten Tasks</p>
           }
