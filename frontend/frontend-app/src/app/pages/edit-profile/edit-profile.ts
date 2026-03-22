@@ -17,6 +17,7 @@ export class EditProfile implements OnInit {
   username = signal('');
   email = signal('');
   neuesPassword = signal('');
+  passwortBestaetigen = signal('');
   aktuellesPassword = signal('');
 
   private userId = signal(localStorage.getItem('userId') || '');
@@ -28,6 +29,11 @@ export class EditProfile implements OnInit {
       setTimeout(() => {
         this.router.navigate(['/login']);
       }, 1000);
+      return;
+    }
+
+    if(this.neuesPassword != this.passwortBestaetigen){
+      alert('Passwörter stimmen nicht überein.');
       return;
     }
 
@@ -48,4 +54,3 @@ export class EditProfile implements OnInit {
   }
 
 }
-
