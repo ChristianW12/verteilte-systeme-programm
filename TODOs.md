@@ -13,13 +13,15 @@
 - Beim Task Erstellen soll der Bearbeiter werden, der die Aufgabe erstellt
 
 ### Sonstiges
-- WebSockets integrieren, für Locking von Tasks, die in Bearbeitung sind, damit nicht mehrere Personen gleichzeitig an einem Task arbeiten können
+- WebSockets integrieren, für Locking von Tasks, die in Bearbeitung sind, damit nicht mehrere Personen gleichzeitig an einem Task arbeiten können 
 - Einheitliches Design anpassen
 - Einheitliches leichtes blau wie bei Projekt erstellen hinzufügen, projektweit
-- Redis für Caching von Daten, die häufig abgerufen werden, z.B. Projektinformationen, um die Performance zu verbessern
+- Redis für Caching der Daten beim Locking mit WebSockets (Socket.IO)
+- Redis in eigenen Container und Socket.IO in eigenen Container
+- nginx als Reverse Proxy für die Container 
+- 
 
 
 ## für Später
-
-- Dockerfiles anpassen für horizontielle Skalierung (für das Backend, keine Links hard coden)
-- weiteren Container für Load Balancer
+- Chart.js für bessere Darstellung der Statistiken
+- Chart.js Overview statt Home Page -> Home Page wird zur Help Page 
