@@ -18,7 +18,8 @@
 					id="projectTitle"
 					name="projectTitle"
 					type="text"
-					[(ngModel)]="projectTitle"
+					[ngModel]="projectTitle()"
+					(ngModelChange)="projectTitle.set($event)"
 					placeholder="z. B. Verteilte Systeme Projekt"
 					class="w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
 				/>
@@ -34,7 +35,8 @@
 				<textarea
 					id="projectDescription"
 					name="projectDescription"
-					[(ngModel)]="projectDescription"
+					[ngModel]="projectDescription()"
+					(ngModelChange)="projectDescription.set($event)"
 					rows="6"
 					placeholder="Beschreibe kurz das Ziel und den Umfang des Projekts..."
 					class="w-full resize-y rounded-xl border border-slate-300 px-4 py-3 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
@@ -46,37 +48,15 @@
 					Mitglieder (E-Mail)
 				</label>
 
-				<div *ngFor="let field of memberFields; let i = index" class="mb-2 flex items-start gap-2">
-					<div class="relative w-full">
-						<input
-							type="email"
-							[name]="'memberEmail' + i"
-							[(ngModel)]="field.email"
-							(input)="onMemberInput(i)"
-							(focus)="onMemberFocus(i)"
-							(blur)="onMemberBlur(i)"
-							placeholder="mitglied@example.com"
-							class="w-full rounded-xl border border-slate-300 px-4 py-3"
-							autocomplete="off"
-						/>
-
-						<ul
-							*ngIf="field.showSuggestions"
-							class="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
-						>
-							<li
-								*ngFor="let suggestion of field.suggestions"
-								(mousedown)="selectSuggestion(i, suggestion)"
-								class="cursor-pointer px-4 py-2 text-sm text-slate-800 hover:bg-slate-100"
-							>
-								{{ suggestion.email }}
-							</li>
-						</ul>
+				<div *ngFor="let field of memberFields(); let i = index" class="mb-2 flex items-start gap-2">
+					<div class="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3">
+						<p class="text-sm text-slate-900">{{ field.email }}</p>
 					</div>
 
 					<select
 						[name]="'memberRole' + i"
-						[(ngModel)]="field.role"
+						[ngModel]="field.role"
+						(ngModelChange)="onMemberRoleChange(i, $event)"
 						class="rounded-xl border border-slate-300 px-3 py-3 text-sm text-slate-800"
 					>
 						<option value="Admin">Admin</option>
@@ -93,21 +73,17 @@
 					</button>
 				</div>
 
-				<button
-					type="button"
-					(click)="addMemberField()"
-					class="mt-2 rounded-xl bg-slate-200 px-4 py-2"
-				>
-					+ Weiteres Mitglied
-				</button>
+				<p *ngIf="memberFields().length === 0" class="mt-2 text-sm text-slate-500">
+					Keine Mitglieder im Projekt vorhanden.
+				</p>
 			</div>
 
 			<button
 				type="submit"
-				[disabled]="isSubmitting"
+				[disabled]="isSubmitting()"
 				class="inline-flex items-center rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-300"
 			>
-				{{ isSubmitting ? 'Speichere Änderungen...' : 'Änderungen speichern' }}
+				{{ isSubmitting() ? 'Speichere Änderungen...' : 'Änderungen speichern' }}
 			</button>
 		</form>
 	</div>

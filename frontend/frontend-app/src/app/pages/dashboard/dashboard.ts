@@ -7,6 +7,13 @@ import { CdkDragDrop, DragDropModule, CdkDragStart } from '@angular/cdk/drag-dro
 
 type ProjectRole = 'Developer' | 'Admin' | 'Viewer';
 
+type ProjectMemberApiItem = {
+  user_id: number;
+  username: string;
+  email: string;
+  role?: ProjectRole;
+};
+
 type ProjectApiItem = {
   project_id: number;
   name: string;
@@ -14,6 +21,7 @@ type ProjectApiItem = {
   created_by: string;
   admin_id: number;
   role?: ProjectRole;
+  members?: ProjectMemberApiItem[];
 };
 
 type GetProjectsResponse = {
@@ -65,6 +73,10 @@ export class Dashboard implements OnInit {
 
   private userIdResponse = signal<number | null>(null);
 
+  private normalizeProjectRole(role: unknown): ProjectRole {
+    return role === 'Admin' || role === 'Developer' || role === 'Viewer' ? role : 'Viewer';
+  }
+
   private getFilteredTasks(): TaskCardData[] {
     const allTasks = this.tasks();
     if (!this.showOnlyMyTasks() || !this.canShowMyTasksForSelectedProject()) {
@@ -93,10 +105,17 @@ export class Dashboard implements OnInit {
           response.projects.map((project) => ({
             project_id: project.project_id,
             name: project.name,
+            description: project.description,
             created_by: project.created_by,
             // Hier wird noch zusätzlich die ID des Admins gespeichert, hilft uns später wenn wir ein Projekt bearbeiten Button einfügen möchte
             admin_id: project.admin_id,
-            role: project.role,
+            role: this.normalizeProjectRole(project.role),
+            members: (project.members ?? []).map((member) => ({
+              user_id: member.user_id,
+              username: member.username,
+              email: member.email,
+              role: this.normalizeProjectRole(member.role),
+            })),
           })),
         );
         this.userIdResponse.set(response.userId);

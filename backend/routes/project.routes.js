@@ -194,6 +194,35 @@ router.get("/get/:userId", async (req, res) => {
       [userId],
     );
 
+    const [projectMembers] = await db.query(
+      `SELECT u.user_id, u.username, u.email, pm.project_id, pm.role
+       FROM project_members pm
+       JOIN users u ON u.user_id = pm.user_id
+       WHERE pm.project_id IN (
+         SELECT pm1.project_id
+         FROM project_members pm1
+         WHERE pm1.user_id = ?
+       )
+       ORDER BY pm.project_id ASC, u.email ASC`,
+      [userId],
+    );
+
+    const membersByProjectId = new Map();
+    for (const member of projectMembers) {
+      const projectId = Number(member.project_id);
+
+      if (!membersByProjectId.has(projectId)) {
+        membersByProjectId.set(projectId, []);
+      }
+
+      membersByProjectId.get(projectId).push({
+        user_id: member.user_id,
+        username: member.username,
+        email: member.email,
+        role: member.role,
+      });
+    }
+
     const response = {
       userId: userId,
       projects: projects.map((p) => ({
@@ -203,6 +232,7 @@ router.get("/get/:userId", async (req, res) => {
         created_by: p.email_creator,
         admin_id: p.created_by,
         role: p.role,
+        members: membersByProjectId.get(Number(p.project_id)) || [],
       })),
     };
 

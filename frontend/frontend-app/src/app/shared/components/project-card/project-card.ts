@@ -4,9 +4,16 @@ import { RouterLink } from "@angular/router";
 export type ProjectCardData = {
   project_id: number;
   name: string;
+  description?: string;
   created_by?: string;
   admin_id?: number;
   role?: 'Developer' | 'Admin' | 'Viewer';
+  members?: {
+    user_id: number;
+    username: string;
+    email: string;
+    role: 'Developer' | 'Admin' | 'Viewer';
+  }[];
 };
 
 @Component({
