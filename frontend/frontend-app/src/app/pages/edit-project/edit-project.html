@@ -43,11 +43,13 @@
 				></textarea>
 			</div>
 
-			<div>
-				<label class="mb-2 block text-sm font-semibold text-slate-800">
-					Mitglieder (E-Mail)
-				</label>
+		<div>
+			<label class="mb-2 block text-sm font-semibold text-slate-800">
+				Mitglieder (E-Mail)
+			</label>
 
+			<div>
+				<p class="mb-3 text-sm font-medium text-slate-700">Bestehende Mitglieder:</p>
 				<div *ngFor="let field of memberFields(); let i = index" class="mb-2 flex items-start gap-2">
 					<div class="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3">
 						<p class="text-sm text-slate-900">{{ field.email }}</p>
@@ -73,10 +75,69 @@
 					</button>
 				</div>
 
-				<p *ngIf="memberFields().length === 0" class="mt-2 text-sm text-slate-500">
+				<p *ngIf="memberFields().length === 0" class="text-sm text-slate-500">
 					Keine Mitglieder im Projekt vorhanden.
 				</p>
 			</div>
+
+			<div class="mt-6">
+				<p class="mb-3 text-sm font-medium text-slate-700">Neue Mitglieder hinzufügen:</p>
+				<div *ngFor="let field of newMemberFields(); let i = index" class="mb-2 flex items-start gap-2">
+					<div class="relative w-full">
+						<input
+							type="email"
+							[name]="'newMemberEmail' + i"
+							[ngModel]="field.email"
+							(ngModelChange)="field.email = $event; onMemberInput(i)"
+							(focus)="onMemberFocus(i)"
+							(blur)="onMemberBlur(i)"
+							placeholder="mitglied@example.com"
+							class="w-full rounded-xl border border-slate-300 px-4 py-3"
+							autocomplete="off"
+						/>
+
+						<ul
+							*ngIf="field.showSuggestions"
+							class="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-slate-200 bg-white shadow-lg"
+						>
+							<li
+								*ngFor="let suggestion of field.suggestions"
+								(mousedown)="selectSuggestion(i, suggestion)"
+								class="cursor-pointer px-4 py-2 text-sm text-slate-800 hover:bg-slate-100"
+							>
+								{{ suggestion.email }}
+							</li>
+						</ul>
+					</div>
+
+					<select
+						[name]="'newMemberRole' + i"
+						[(ngModel)]="field.role"
+						class="rounded-xl border border-slate-300 px-3 py-3 text-sm text-slate-800"
+					>
+						<option value="Admin">Admin</option>
+						<option value="Developer">Developer</option>
+						<option value="Viewer">Viewer</option>
+					</select>
+
+					<button
+						type="button"
+						(click)="removeNewMemberField(i)"
+						class="rounded-xl bg-red-500 px-3 py-2 text-white"
+					>
+						X
+					</button>
+				</div>
+
+				<button
+					type="button"
+					(click)="addMemberField()"
+					class="mt-2 rounded-xl bg-slate-200 px-4 py-2"
+				>
+					+ Weiteres Mitglied
+				</button>
+			</div>
+		</div>
 
 			<button
 				type="submit"

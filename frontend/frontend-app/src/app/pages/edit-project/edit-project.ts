@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 
 type ProjectFromApi = {
@@ -24,11 +24,19 @@ type GetProjectsResponse = {
   projects: ProjectFromApi[];
 };
 
+type UserSuggestion = {
+  user_id: number;
+  email: string;
+};
+
 type MemberRole = 'Admin' | 'Developer' | 'Viewer';
 
 type MemberField = {
   email: string;
   role: MemberRole;
+  suggestions?: UserSuggestion[];
+  showSuggestions?: boolean;
+  debounceTimer?: ReturnType<typeof setTimeout> | null;
 };
 
 type EditProjectResponse = {
@@ -42,7 +50,7 @@ type EditProjectResponse = {
   templateUrl: './edit-project.html',
   styleUrl: './edit-project.css',
 })
-export class EditProject implements OnInit {
+export class EditProject implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private http = inject(HttpClient);
@@ -57,6 +65,17 @@ export class EditProject implements OnInit {
   projectDescription = signal('');
 
   memberFields = signal<MemberField[]>([]);
+  newMemberFields = signal<MemberField[]>([this.createEmptyMemberField()]);
+
+  private createEmptyMemberField(): MemberField {
+    return {
+      email: '',
+      role: 'Viewer',
+      suggestions: [],
+      showSuggestions: false,
+      debounceTimer: null,
+    };
+  }
 
   private normalizeMemberRole(role: unknown): MemberRole {
     return role === 'Admin' || role === 'Developer' || role === 'Viewer' ? role : 'Viewer';
@@ -124,6 +143,130 @@ export class EditProject implements OnInit {
     });
   }
 
+  ngOnDestroy(): void {
+    for (const field of this.newMemberFields()) {
+      if (field.debounceTimer) {
+        clearTimeout(field.debounceTimer);
+      }
+    }
+  }
+
+  addMemberField(): void {
+    this.newMemberFields.update((fields) => [...fields, this.createEmptyMemberField()]);
+  }
+
+  removeNewMemberField(index: number): void {
+    const field = this.newMemberFields()[index];
+    if (field?.debounceTimer) {
+      clearTimeout(field.debounceTimer);
+    }
+
+    this.newMemberFields.update((fields) => fields.filter((_, i) => i !== index));
+  }
+
+  onMemberInput(index: number): void {
+    const fields = this.newMemberFields();
+    const field = fields[index];
+    if (!field) {
+      return;
+    }
+
+    const value = field.email.trim();
+
+    if (field.debounceTimer) {
+      clearTimeout(field.debounceTimer);
+    }
+
+    if (value.length < 2) {
+      field.suggestions = [];
+      field.showSuggestions = false;
+      return;
+    }
+
+    field.debounceTimer = setTimeout(() => {
+      this.http
+        .get<{ users: UserSuggestion[] }>(
+          `/api/project/member-search?query=${encodeURIComponent(value)}`,
+        )
+        .subscribe({
+          next: (response) => {
+            const currentFields = this.newMemberFields();
+            const currentField = currentFields[index];
+            if (!currentField) {
+              return;
+            }
+
+            currentField.suggestions = response.users ?? [];
+            currentField.showSuggestions = currentField.suggestions.length > 0;
+            currentField.debounceTimer = null;
+            this.newMemberFields.set([...currentFields]);
+          },
+          error: () => {
+            const currentFields = this.newMemberFields();
+            const currentField = currentFields[index];
+            if (!currentField) {
+              return;
+            }
+
+            currentField.suggestions = [];
+            currentField.showSuggestions = false;
+            currentField.debounceTimer = null;
+            this.newMemberFields.set([...currentFields]);
+          },
+        });
+    }, 350);
+  }
+
+  onMemberFocus(index: number): void {
+    const fields = this.newMemberFields();
+    const field = fields[index];
+    if (!field) {
+      return;
+    }
+
+    field.showSuggestions = (field.suggestions ?? []).length > 0;
+    this.newMemberFields.set([...fields]);
+  }
+
+  onMemberBlur(index: number): void {
+    const fields = this.newMemberFields();
+    const field = fields[index];
+    if (!field) {
+      return;
+    }
+
+    setTimeout(() => {
+      const currentFields = this.newMemberFields();
+      const currentField = currentFields[index];
+      if (!currentField) {
+        return;
+      }
+
+      currentField.showSuggestions = false;
+      this.newMemberFields.set([...currentFields]);
+    }, 100);
+  }
+
+  selectSuggestion(index: number, suggestion: UserSuggestion): void {
+    const fields = this.newMemberFields();
+    const field = fields[index];
+    if (!field) {
+      return;
+    }
+
+    field.email = suggestion.email;
+    field.suggestions = [];
+    field.showSuggestions = false;
+
+    if (field.debounceTimer) {
+      clearTimeout(field.debounceTimer);
+      field.debounceTimer = null;
+    }
+
+    this.newMemberFields.set([...fields]);
+  }
+
+
   removeMemberField(index: number): void {
     this.memberFields.update((fields) => fields.filter((_, i) => i !== index));
   }
@@ -149,12 +292,21 @@ export class EditProject implements OnInit {
       return;
     }
 
-    const members = this.memberFields()
+    const existingMembers = this.memberFields()
       .map((field) => ({
         email: field.email.trim(),
         role: field.role,
       }))
       .filter((member) => member.email.length > 0);
+
+    const newMembers = this.newMemberFields()
+      .map((field) => ({
+        email: field.email.trim(),
+        role: field.role,
+      }))
+      .filter((member) => member.email.length > 0);
+
+    const members = [...existingMembers, ...newMembers];
 
     this.isSubmitting.set(true);
 
@@ -170,6 +322,7 @@ export class EditProject implements OnInit {
         next: (response) => {
           alert(response.message || 'Projekt erfolgreich aktualisiert.');
           this.isSubmitting.set(false);
+          this.router.navigate(['/dashboard']);
         },
         error: (error) => {
           alert(error?.error?.message || 'Projekt konnte nicht aktualisiert werden.');
