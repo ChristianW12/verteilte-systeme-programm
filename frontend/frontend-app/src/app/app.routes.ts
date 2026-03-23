@@ -21,7 +21,7 @@ export const routes: Routes = [
   { path: 'task/:id', component: DetailedTask, canActivate: [authGuard] },
   { path: 'project', component: Project, canActivate: [authGuard] },
   {path: 'project/create', component: CreateProject, canActivate: [authGuard]},
-  {path: 'project/edit', component: EditProject, canActivate: [authGuard]},
+  {path: 'project/edit/:projectId', component: EditProject, canActivate: [authGuard]},
   { path: 'profile', component: Profile, canActivate: [authGuard] },
   {path: 'profile/edit', component: EditProfile, canActivate: [authGuard]},
   { path: '**', component: Home },
