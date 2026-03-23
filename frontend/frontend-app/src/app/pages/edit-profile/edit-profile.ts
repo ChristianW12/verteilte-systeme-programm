@@ -66,9 +66,12 @@ export class EditProfile implements OnInit {
     this.http.post('/api/auth/profile/update', payload)
       .subscribe({
         next: () => {
-          alert('Profil erfolgreich aktualisiert.');
           this.neuesPassword.set('');
           this.passwortBestaetigen.set('');
+          setTimeout(() => {
+            alert('Profil erfolgreich aktualisiert.');
+            this.router.navigate(['/profile']);
+          }, 100);
         },
         error: (err) => {
           console.error('Fehler beim Aktualisieren des Profils:', err);
@@ -88,12 +91,24 @@ export class EditProfile implements OnInit {
       fehlermeldung += 'Benutzername muss mindestens 3 Zeichen haben.\n';
     }
 
+    if (this.username().trim().length > 30) {
+      fehlermeldung += 'Benutzername darf maximal 30 Zeichen haben.\n';
+    }
+
     if (!this.emailRegex.test(this.email().trim())) {
       fehlermeldung += 'Bitte eine gültige E-Mail eingeben (z. B. name@domain.de)\n';
     }
 
+    if (this.email().trim().length > 50) {
+      fehlermeldung += 'E-Mail darf maximal 50 Zeichen haben.\n';
+    }
+
     if (this.neuesPassword() && this.neuesPassword().length < 8) {
       fehlermeldung += 'Passwort muss mindestens 8 Zeichen haben.\n';
+    }
+
+    if (this.neuesPassword() && this.neuesPassword().length > 100) {
+      fehlermeldung += 'Passwort darf maximal 100 Zeichen haben.\n';
     }
 
     if (this.neuesPassword() && this.neuesPassword() !== this.passwortBestaetigen()) {
