@@ -114,7 +114,38 @@ router.post("/delete", async (req, res) => {});
 
 // TODO: edit route for editing a project
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Project bearbeiten darf
-router.post("/edit", async (req, res) => {});
+router.post("/edit", async (req, res) => {
+  const { project_id, user_id } = req.body;
+
+  const projectId = Number(project_id);
+  const userId = Number(user_id);
+
+  if (!Number.isInteger(projectId) || projectId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: "Ungueltige project_id oder user_id" });
+  }
+
+  try {
+    // Prüfe ob User Admin dieses Projekts ist
+    const [adminRows] = await db.execute(
+      `SELECT pm.user_id FROM project_members pm
+       JOIN projects p ON pm.project_id = p.project_id
+       WHERE pm.project_id = ? 
+         AND pm.user_id = ?
+         AND p.created_by = ?`,
+      [projectId, userId, userId],
+    );
+
+    if (adminRows.length === 0) {
+      return res.status(403).json({ message: "Keine Berechtigung zum Bearbeiten dieses Projekts" });
+    }
+
+    // Autorisierung erfolgreich - weitere Update-Logik kommt später
+    return res.status(200).json({ message: "Autorisierung erfolgreich" });
+  } catch (error) {
+    console.error("Fehler bei der Autorisierungsprüfung:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
+  }
+});
 
 router.get("/member-search", async (req, res) => {
   const query = String(req.query.query || "").trim();

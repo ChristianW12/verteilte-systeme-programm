@@ -4,13 +4,12 @@
   <aside class="w-1/5 bg-gray-100 text-gray-800 border-r border-gray-200 flex flex-col p-4 gap-2 shrink-0">
     <h2 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Projekte</h2>
     @for (project of projects(); track project.project_id) {
-      <button
-        type="button"
+      <div
         class="w-full text-left"
         (click)="selectProject(project)"
       >
         <app-project-card [project]="project" [canUserEditProject]="canUserEditProject(project)"></app-project-card>
-      </button>
+      </div>
     } @empty {
       <p class="text-sm text-gray-500">Keine Projekte gefunden.</p>
     }

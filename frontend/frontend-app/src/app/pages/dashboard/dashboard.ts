@@ -123,7 +123,7 @@ export class Dashboard implements OnInit {
   }
 
   canUserEditProject(project: ProjectCardData): boolean {
-    return project.admin_id === Number(this.userId);
+    return Number(project.admin_id) === Number(this.userId);
   }
 
   canShowMyTasksForSelectedProject(): boolean {
