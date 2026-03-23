@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS projects (
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by INT default null,
-    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
+    FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
 -- 3. Aufgaben (Tasks/Issues)
