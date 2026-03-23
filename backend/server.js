@@ -58,6 +58,6 @@ server.listen(SERVER_PORT, '0.0.0.0', () => {
     console.log(`========================================`);
     console.log(`Backend-Server läuft: ${SERVER_ID}`);
     console.log(`Port: ${SERVER_PORT}`);
-    console.log(`Test-URL: http://localhost:${SERVER_PORT}/api/test`);
+    console.log(`Test-URL: http://localhost:8080/api/test`);
     console.log(`========================================`);
 });
