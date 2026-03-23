@@ -111,4 +111,61 @@ router.post('/profile', async (req, res) => {
   }
 });
 
+// Neuer Endpoint: Profil aktualisieren
+router.post('/profile/update', async (req, res) => {
+  const { userId, username, email, neuesPassword } = req.body;
+
+  if (!userId || !username || !email) {
+    return res.status(400).json({ message: 'userId, username und email sind erforderlich' });
+  }
+
+  try {
+    const [rows] = await db.execute('SELECT user_id FROM users WHERE user_id = ?', [userId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+    }
+
+    if (neuesPassword) {
+      await db.execute(
+        'UPDATE users SET username = ?, email = ?, password = ? WHERE user_id = ?',
+        [username, email, neuesPassword, userId]
+      );
+    } else {
+      await db.execute(
+        'UPDATE users SET username = ?, email = ? WHERE user_id = ?',
+        [username, email, userId]
+      );
+    }
+
+    res.json({ message: 'Profil erfolgreich aktualisiert' });
+  } catch (error) {
+    console.error('Fehler beim Aktualisieren des Profils im Backend:', error);
+    res.status(500).json({ message: 'Interner Serverfehler' });
+  }
+});
+
+// Neuer Endpoint: Profil löschen
+router.post('/profile/delete', async (req, res) => {
+  const { userId } = req.body;
+
+  if (!userId) {
+    return res.status(400).json({ message: 'userId ist erforderlich' });
+  }
+
+  try {
+    const [rows] = await db.execute('SELECT user_id FROM users WHERE user_id = ?', [userId]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+    }
+
+    // Lösche den Benutzer aus der Datenbank
+    await db.execute('DELETE FROM users WHERE user_id = ?', [userId]);
+
+    res.json({ message: 'Profil erfolgreich gelöscht' });
+  } catch (error) {
+    console.error('Fehler beim Löschen des Profils im Backend:', error);
+    res.status(500).json({ message: 'Interner Serverfehler' });
+  }
+});
+
 module.exports = router;

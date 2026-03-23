@@ -5,8 +5,6 @@
 - Profil löschen Seite einfügen (Christian)
 
 ### Projekt
-- Projekt-Bearbeiten Seite anlegen (Christian)
-- Projekt löschen Button hinzufügen (Christian)
 - Rollen im Projekt hinzufügen (evtl. mit eigener Ansicht für Mitglieder in einem Projekt) (Christian)
 
 ### Task
