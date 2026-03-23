@@ -25,14 +25,14 @@
         </div>
 
         <div>
-          <label class="block text-sm font-semibold text-gray-700">Bearbeiter:</label>
-          <p class="text-lg text-gray-900">{{ task()!.assigned_to || 'Nicht zugewiesen' }}</p>
-        </div>
-
-        <div>
           <label class="block text-sm font-semibold text-gray-700">Deadline:</label>
           <p class="text-lg text-gray-900">{{ task()!.deadline ? (task()!.deadline | date:'dd.MM.yyyy') : 'Keine Deadline' }}</p>
         </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-sm font-semibold text-gray-700">Bearbeiter:</label>
+        <p class="text-lg text-gray-900 break-words">{{ task()!.assigned_to || 'Nicht zugewiesen' }}</p>
       </div>
 
       <div class="mb-4">
