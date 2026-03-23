@@ -184,7 +184,7 @@ export class Dashboard implements OnInit {
     );
 
     // Backend Update
-    this.http.post('/api/tasks/edit', {
+    this.http.post('/api/tasks/edit/updateStatus', {
       task_id: task.task_id,
       user_id: Number(this.userId),
       status: newStatus,

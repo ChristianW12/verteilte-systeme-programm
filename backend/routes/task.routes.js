@@ -287,6 +287,47 @@ router.post('/edit', async (req, res) => {
   }
 });
 
+router.post('/edit/updateStatus', async (req, res) => {
+  const { task_id, user_id, status } = req.body;
+  
+  const taskId = Number(task_id);
+  const userId = Number(user_id);
+  const nextStatus = status || '';
+
+  try {
+
+    if (!Number.isInteger(taskId) || taskId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+      return res.status(400).json({ message: 'task_id und user_id muessen gueltige Zahlen sein' });
+    }
+
+    const permissions = await getTaskPermissionContext(taskId, userId);
+
+    if (!permissions.task) {
+      return res.status(404).json({ message: 'Task nicht gefunden' });
+    }
+
+    if (!permissions.canEdit) {
+      return res.status(403).json({ message: 'Keine Berechtigung zum Bearbeiten dieser Task' });
+    }
+
+    if (!allowedStatus.includes(nextStatus)) {
+      return res.status(400).json({ message: 'Ungueltiger Status' });
+    }
+
+    await db.execute(
+      `UPDATE tasks
+       SET status = ?
+       WHERE task_id = ?`,
+      [nextStatus, taskId],
+    );
+
+    return res.status(200).json({ message: 'Task-Status erfolgreich aktualisiert' });
+  } catch (error) {
+    console.error('Fehler beim Aktualisieren des Task-Status:', error);
+    return res.status(500).json({ message: 'Interner Serverfehler' });
+  }
+});
+
 router.get('/:id/assignees', async (req, res) => {
   const taskId = Number(req.params.id);
   const userId = Number(req.query.user_id);
