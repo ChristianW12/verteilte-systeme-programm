@@ -348,4 +348,35 @@ export class EditProject implements OnInit, OnDestroy {
         },
       });
   }
+
+  onDeleteProject(): void {
+    if (!this.projectId || !this.userId) {
+      alert('Projekt oder Benutzer ungültig.');
+      return;
+    }
+
+    const confirmation = confirm('Möchten Sie dieses Projekt wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.');
+    if (!confirmation) {
+      return;
+    }
+
+    this.isSubmitting.set(true);
+
+    this.http
+      .post<{ message: string }>('/api/project/delete', {
+        project_id: this.projectId,
+        user_id: this.userId,
+      })
+      .subscribe({
+        next: (response) => {
+          alert(response.message || 'Projekt erfolgreich gelöscht.');
+          this.isSubmitting.set(false);
+          this.router.navigate(['/dashboard']);
+        },
+        error: (error) => {
+          alert(error?.error?.message || 'Projekt konnte nicht gelöscht werden.');
+          this.isSubmitting.set(false);
+        },
+      });
+  }
 }

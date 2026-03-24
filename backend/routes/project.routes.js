@@ -117,9 +117,49 @@ router.post("/create", async (req, res) => {
   }
 });
 
-// TODO: delete route for deleting a project
+
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Project löschen darf
-router.post("/delete", async (req, res) => {});
+router.post("/delete", async (req, res) => {
+  const { project_id, user_id } = req.body;
+
+  const projectId = Number(project_id);
+  const userId = Number(user_id);
+
+  // Input-Validierung
+  if (!Number.isInteger(projectId) || projectId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: "Ungültige project_id oder user_id" });
+  }
+
+  try {
+    // 1. Prüfe ob User der Ersteller (Owner) dieses Projekts ist
+    const [projectRows] = await db.execute(
+      "SELECT created_by FROM projects WHERE project_id = ?",
+      [projectId],
+    );
+
+    if (projectRows.length === 0) {
+      return res.status(404).json({ message: "Projekt nicht gefunden" });
+    }
+
+    const project = projectRows[0];
+    if (Number(project.created_by) !== userId) {
+      return res.status(403).json({ message: "Keine Berechtigung zum Löschen dieses Projekts" });
+    }
+
+    // 2. Lösche das Projekt (Tasks werden durch ON DELETE CASCADE automatisch gelöscht)
+    await db.execute(
+      "DELETE FROM projects WHERE project_id = ?",
+      [projectId],
+    );
+
+    return res.status(200).json({
+      message: "Projekt erfolgreich gelöscht",
+    });
+  } catch (error) {
+    console.error("Fehler beim Löschen des Projekts:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
+  }
+});
 
 router.post("/edit", async (req, res) => {
   const { project_id, user_id, name, description, members } = req.body;
