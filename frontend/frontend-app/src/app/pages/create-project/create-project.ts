@@ -188,6 +188,7 @@ export class CreateProject {
             },
           ];
           this.isSubmitting = false;
+          this.router.navigate(['/dashboard']);
         },
         error: (error) => {
           alert(error?.error?.message || 'Projekt konnte nicht erstellt werden.');
@@ -195,7 +196,4 @@ export class CreateProject {
         },
       });
   }
-
 }
-
-
