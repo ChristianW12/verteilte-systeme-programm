@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 
 type UserSuggestion = {
   user_id: number;
@@ -46,6 +47,7 @@ export class CreateProject {
   ];
 
   private http = inject(HttpClient);
+  private router = inject(Router);
 
   addMemberField(): void {
     this.memberFields.push({
