@@ -1,25 +1,25 @@
 # To Be Done 
 
 ### Profil
-- Profil-Bearbeiten Seite anlegen (Christian)
-- Profil löschen Seite einfügen (Christian)
+- Fertig!
 
 ### Projekt
-- Rollen im Projekt hinzufügen (evtl. mit eigener Ansicht für Mitglieder in einem Projekt) (Christian)
-
+- Projekt löschen (Alex)
+- Projekt bearbeiten Bugfix (sizelimit titel & beschreibung) (Alex)
+- Mitglieder bearbeiten Bugfix: Rollenmanagement für den Projektleiter (Admin nicht mehr anzeigen z.B.) (Alex)
+- 
 ### Task
-- Beim Task Erstellen soll der Bearbeiter werden, der die Aufgabe erstellt
+- Fertig!
 
-### Sonstiges
-- WebSockets integrieren, für Locking von Tasks, die in Bearbeitung sind, damit nicht mehrere Personen gleichzeitig an einem Task arbeiten können 
+### Design
 - Einheitliches Design anpassen
 - Einheitliches leichtes blau wie bei Projekt erstellen hinzufügen, projektweit
+
+### Sonstiges
+- WebSockets integrieren, für Locking von Tasks, die in Bearbeitung sind, damit nicht mehrere Personen gleichzeitig an einem Task arbeiten können
 - Redis für Caching der Daten beim Locking mit WebSockets (Socket.IO)
-- Redis in eigenen Container und Socket.IO in eigenen Container
-- nginx als Reverse Proxy für die Container 
-- 
+- Redis in eigenen Container und Socket.IO in eigenen Container 
 
-
-## für Später
+## für Später (Design)
 - Chart.js für bessere Darstellung der Statistiken
 - Chart.js Overview statt Home Page -> Home Page wird zur Help Page 
