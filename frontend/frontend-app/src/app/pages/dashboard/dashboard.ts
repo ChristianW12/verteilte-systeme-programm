@@ -55,7 +55,11 @@ export class Dashboard implements OnInit {
   private router = inject(Router);
   private http = inject(HttpClient);
 
-  private userId = sessionStorage.getItem('userId');
+  private userId: string | null = null;
+
+  private canUseSessionStorage(): boolean {
+    return typeof sessionStorage !== 'undefined';
+  }
 
   projects = signal<ProjectCardData[]>([]);
   selectedProjectId = signal<number | null>(null);
@@ -93,6 +97,12 @@ export class Dashboard implements OnInit {
 
 
   ngOnInit(): void {
+    if (!this.canUseSessionStorage()) {
+      return;
+    }
+
+    this.userId = sessionStorage.getItem('userId');
+
     if (!this.userId) {
       this.router.navigate(['/login']);
       return;

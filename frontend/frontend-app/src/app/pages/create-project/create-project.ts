@@ -47,6 +47,10 @@ export class CreateProject {
 
   private http = inject(HttpClient);
 
+  private canUseSessionStorage(): boolean {
+    return typeof sessionStorage !== 'undefined';
+  }
+
   addMemberField(): void {
     this.memberFields.push({
       email: '',
@@ -143,6 +147,10 @@ export class CreateProject {
   }
 
   onSubmit(): void {
+    if (!this.canUseSessionStorage()) {
+      return;
+    }
+
     const createdByRaw = sessionStorage.getItem('userId');
     const createdBy = Number(createdByRaw);
 

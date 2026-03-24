@@ -47,6 +47,23 @@ export class DetailedTask implements OnInit {
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
 
+  private canUseWindow(): boolean {
+    return typeof window !== 'undefined';
+  }
+
+  private canUseLocalStorage(): boolean {
+    return typeof localStorage !== 'undefined';
+  }
+
+  private getUserIdFromLocalStorage(): number | null {
+    if (!this.canUseLocalStorage()) {
+      return null;
+    }
+
+    const parsedUserId = Number(localStorage.getItem('userId'));
+    return Number.isInteger(parsedUserId) && parsedUserId > 0 ? parsedUserId : null;
+  }
+
   task = signal<TaskDetail | null>(null);
   loading = signal(true);
   error = signal<string | null>(null);
@@ -69,7 +86,7 @@ export class DetailedTask implements OnInit {
 
     this.route.paramMap.subscribe((params) => {
       const routeTaskId = Number(params.get('id'));
-      const stateTaskId = Number((window.history.state as any)?.taskId);
+      const stateTaskId = this.canUseWindow() ? Number((window.history.state as any)?.taskId) : NaN;
       const taskId = Number.isInteger(routeTaskId) && routeTaskId > 0 ? routeTaskId : stateTaskId;
 
       if (!taskId || !Number.isInteger(taskId) || taskId <= 0) {
@@ -86,8 +103,8 @@ export class DetailedTask implements OnInit {
   }
 
   loadTask(id: number) {
-    const userId = localStorage.getItem('userId');
-    const userIdParam = userId ? `?user_id=${Number(userId)}` : '';
+    const userId = this.getUserIdFromLocalStorage();
+    const userIdParam = userId ? `?user_id=${userId}` : '';
 
     this.http
       .get<{ task?: TaskDetail; permissions?: TaskPermissions }>(`/api/tasks/${id}${userIdParam}`)
@@ -137,9 +154,9 @@ export class DetailedTask implements OnInit {
   }
 
   loadAssignees(taskId: number) {
-    const userId = Number(localStorage.getItem('userId'));
+    const userId = this.getUserIdFromLocalStorage();
 
-    if (!Number.isInteger(userId) || userId <= 0) {
+    if (!userId) {
       this.assignees.set([]);
       return;
     }
@@ -165,10 +182,10 @@ export class DetailedTask implements OnInit {
 
   saveEdit() {
     const currentTask = this.task();
-    const userId = Number(localStorage.getItem('userId'));
+    const userId = this.getUserIdFromLocalStorage();
     const form = this.editForm();
 
-    if (!currentTask || !Number.isInteger(userId) || userId <= 0 || !this.permissions().canEdit) {
+    if (!currentTask || !userId || !this.permissions().canEdit) {
       return;
     }
 
@@ -221,14 +238,14 @@ export class DetailedTask implements OnInit {
   }
 
   onDelete() {
-    const userId = Number(localStorage.getItem('userId'));
+    const userId = this.getUserIdFromLocalStorage();
     const currentTask = this.task();
 
-    if (!currentTask || !Number.isInteger(userId) || userId <= 0 || !this.permissions().canDelete) {
+    if (!currentTask || !userId || !this.permissions().canDelete) {
       return;
     }
 
-    const confirmed = window.confirm('Task wirklich löschen?');
+    const confirmed = this.canUseWindow() ? window.confirm('Task wirklich löschen?') : false;
     if (!confirmed) {
       return;
     }

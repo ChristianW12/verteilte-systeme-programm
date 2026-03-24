@@ -38,6 +38,10 @@ export class CreateTask implements OnInit {
   private router = inject(Router);
   private http = inject(HttpClient);
 
+  private canUseSessionStorage(): boolean {
+    return typeof sessionStorage !== 'undefined';
+  }
+
   projects = signal<Project[]>([]);
   allUsers = signal<User[]>([]);
   assignees = signal<User[]>([]);
@@ -72,6 +76,10 @@ export class CreateTask implements OnInit {
     const month = String(today.getMonth() + 1).padStart(2, '0');
     const day = String(today.getDate()).padStart(2, '0');
     this.minDate = `${year}-${month}-${day}`;
+
+    if (!this.canUseSessionStorage()) {
+      return;
+    }
 
     const userId = sessionStorage.getItem('userId');
     if (!userId) {
@@ -109,6 +117,10 @@ export class CreateTask implements OnInit {
   }
 
   onSubmit(): void {
+    if (!this.canUseSessionStorage()) {
+      return;
+    }
+
     const userId = sessionStorage.getItem('userId');
 
     if (!userId) {

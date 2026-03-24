@@ -55,6 +55,10 @@ export class EditProject implements OnInit, OnDestroy {
   private router = inject(Router);
   private http = inject(HttpClient);
 
+  private canUseSessionStorage(): boolean {
+    return typeof sessionStorage !== 'undefined';
+  }
+
   projectId: number | null = null;
   userId: number | null = null;
   isAuthorized = false;
@@ -84,6 +88,10 @@ export class EditProject implements OnInit, OnDestroy {
 
 
   ngOnInit(): void {
+    if (!this.canUseSessionStorage()) {
+      return;
+    }
+
     const userIdRaw = sessionStorage.getItem('userId');
     const userId = Number(userIdRaw);
 

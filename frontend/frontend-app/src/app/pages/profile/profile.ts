@@ -28,12 +28,20 @@ export class Profile {
   username = signal('');
   memberSince = signal('');
 
+  private canUseSessionStorage(): boolean {
+    return typeof sessionStorage !== 'undefined';
+  }
+
   ngOnInit() {
 
     this.loadProfile();
   }
 
   loadProfile() {
+
+    if (!this.canUseSessionStorage()) {
+      return;
+    }
 
     const userId = sessionStorage.getItem('userId');
 
@@ -53,6 +61,10 @@ export class Profile {
   }
 
   logout() {
+    if (!this.canUseSessionStorage()) {
+      return;
+    }
+
     sessionStorage.removeItem('isLoggedIn');
     sessionStorage.removeItem('userId');
     sessionStorage.removeItem('userEmail');

@@ -21,10 +21,19 @@ export class EditProfile implements OnInit {
   passwortBestaetigen = signal('');
   aktuellesPassword = signal('');
 
-  private userId = signal(sessionStorage.getItem('userId') || '');
+  private userId = signal('');
   private emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+  private canUseSessionStorage(): boolean {
+    return typeof sessionStorage !== 'undefined';
+  }
+
   ngOnInit() {
+    if (!this.canUseSessionStorage()) {
+      return;
+    }
+
+    this.userId.set(sessionStorage.getItem('userId') || '');
 
     if (!this.userId()) {
       alert('Benutzer nicht gefunden. Bitte erneut anmelden.');
@@ -144,9 +153,11 @@ export class EditProfile implements OnInit {
       .subscribe({
         next: (res: any) => {
           alert('Profil erfolgreich gelöscht. Du wirst abgemeldet.');
-          sessionStorage.removeItem('isLoggedIn');
-          sessionStorage.removeItem('userId');
-          sessionStorage.removeItem('userEmail');
+          if (this.canUseSessionStorage()) {
+            sessionStorage.removeItem('isLoggedIn');
+            sessionStorage.removeItem('userId');
+            sessionStorage.removeItem('userEmail');
+          }
           setTimeout(() => {
             this.router.navigate(['/login']);
           }, 1000);
