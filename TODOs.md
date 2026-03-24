@@ -5,7 +5,6 @@
 
 ### Projekt
 - Projekt löschen (Alex)
-- Projekt bearbeiten Bugfix (sizelimit titel & beschreibung) (Alex)
 - Mitglieder bearbeiten Bugfix: Rollenmanagement für den Projektleiter (Admin nicht mehr anzeigen z.B.) (Alex)
 - 
 ### Task

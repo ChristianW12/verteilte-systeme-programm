@@ -57,6 +57,7 @@ export class EditProject implements OnInit, OnDestroy {
 
   projectId: number | null = null;
   userId: number | null = null;
+  creatorEmail: string | null = null;
   isAuthorized = false;
   isLoading = true;
   isSubmitting = signal(false);
@@ -125,11 +126,14 @@ export class EditProject implements OnInit, OnDestroy {
 
         this.projectTitle.set(project.name || '');
         this.projectDescription.set(project.description || '');
+        this.creatorEmail = String(project.created_by).toLowerCase();
         this.memberFields.set(
-          (project.members ?? []).map((member) => ({
-            email: String(member.email || ''),
-            role: this.normalizeMemberRole(member.role),
-          })),
+          (project.members ?? [])
+            .filter((member) => String(member.email || '').toLowerCase() !== this.creatorEmail)
+            .map((member) => ({
+              email: String(member.email || ''),
+              role: this.normalizeMemberRole(member.role),
+            })),
         );
         this.isAuthorized = true;
 
@@ -254,6 +258,13 @@ export class EditProject implements OnInit, OnDestroy {
       return;
     }
 
+    const selectedEmail = String(suggestion.email).toLowerCase();
+
+    if (selectedEmail === this.creatorEmail) {
+      alert('Sie können sich nicht selbst hinzufügen.');
+      return;
+    }
+
     field.email = suggestion.email;
     field.suggestions = [];
     field.showSuggestions = false;
@@ -301,10 +312,17 @@ export class EditProject implements OnInit, OnDestroy {
 
     const newMembers = this.newMemberFields()
       .map((field) => ({
-        email: field.email.trim(),
+        email: field.email.trim().toLowerCase(),
         role: field.role,
       }))
       .filter((member) => member.email.length > 0);
+
+    // Überprüfe ob jemand versucht, sich selbst (den Ersteller) hinzuzufügen
+    const creatorInNewMembers = newMembers.find((member) => member.email === this.creatorEmail);
+    if (creatorInNewMembers) {
+      alert('Sie können sich nicht selbst hinzufügen.');
+      return;
+    }
 
     const members = [...existingMembers, ...newMembers];
 
@@ -331,4 +349,3 @@ export class EditProject implements OnInit, OnDestroy {
       });
   }
 }
-
