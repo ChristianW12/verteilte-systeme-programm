@@ -12,6 +12,15 @@ router.post("/create", async (req, res) => {
     return res.status(400).json({ message: "Projektname ist erforderlich" });
   }
 
+  // Längenvaldierung für Titel und Beschreibung
+  if (String(name).trim().length > 80) {
+    return res.status(400).json({ message: "Projekttitel darf maximal 80 Zeichen lang sein" });
+  }
+
+  if (description && String(description).trim().length > 500) {
+    return res.status(400).json({ message: "Beschreibung darf maximal 500 Zeichen lang sein" });
+  }
+
   if (!Number.isInteger(createdById) || createdById <= 0) {
     return res.status(400).json({ message: "Ungueltige createdBy-ID" });
   }
@@ -125,6 +134,15 @@ router.post("/edit", async (req, res) => {
 
   if (!name || !String(name).trim()) {
     return res.status(400).json({ message: "Projektname ist erforderlich" });
+  }
+
+  // Längenvaldierung für Titel und Beschreibung
+  if (String(name).trim().length > 80) {
+    return res.status(400).json({ message: "Projekttitel darf maximal 80 Zeichen lang sein" });
+  }
+
+  if (description && String(description).trim().length > 500) {
+    return res.status(400).json({ message: "Beschreibung darf maximal 500 Zeichen lang sein" });
   }
 
   const allowedRoles = new Set(["Admin", "Developer", "Viewer"]);

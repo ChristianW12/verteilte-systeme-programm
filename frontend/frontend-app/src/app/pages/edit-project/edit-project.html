@@ -18,6 +18,7 @@
 					id="projectTitle"
 					name="projectTitle"
 					type="text"
+					maxlength="80"
 					[ngModel]="projectTitle()"
 					(ngModelChange)="projectTitle.set($event)"
 					placeholder="z. B. Verteilte Systeme Projekt"
@@ -35,6 +36,7 @@
 				<textarea
 					id="projectDescription"
 					name="projectDescription"
+					maxlength="500"
 					[ngModel]="projectDescription()"
 					(ngModelChange)="projectDescription.set($event)"
 					rows="6"
