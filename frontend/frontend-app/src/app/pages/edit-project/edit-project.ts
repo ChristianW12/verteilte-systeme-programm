@@ -84,7 +84,7 @@ export class EditProject implements OnInit, OnDestroy {
 
 
   ngOnInit(): void {
-    const userIdRaw = localStorage.getItem('userId');
+    const userIdRaw = sessionStorage.getItem('userId');
     const userId = Number(userIdRaw);
 
     if (!userIdRaw || !Number.isInteger(userId) || userId <= 0) {

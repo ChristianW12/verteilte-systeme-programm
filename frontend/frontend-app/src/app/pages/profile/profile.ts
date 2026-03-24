@@ -35,7 +35,7 @@ export class Profile {
 
   loadProfile() {
 
-    const userId = localStorage.getItem('userId');
+    const userId = sessionStorage.getItem('userId');
 
     this.http.post<ProfileResponse>('/api/auth/profile', { userId })
       .subscribe({
@@ -53,9 +53,9 @@ export class Profile {
   }
 
   logout() {
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userEmail');
+    sessionStorage.removeItem('isLoggedIn');
+    sessionStorage.removeItem('userId');
+    sessionStorage.removeItem('userEmail');
     alert('Erfolgreich ausgeloggt');
     this.router.navigate(['/home']);
   }

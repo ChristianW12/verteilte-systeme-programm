@@ -5,7 +5,7 @@ export const authGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
 
   // Prüfen, ob der Nutzer eingeloggt ist (LocalStorage)
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+  const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
 
   if (isLoggedIn) {
     return true; // Zugriff erlaubt
