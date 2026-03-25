@@ -2,7 +2,6 @@
 
 const express = require('express');
 const http = require('http');
-const { Server } = require('socket.io');
 const os = require('os');
 
 const apiRoutes = require('./routes/api.routes');
@@ -14,13 +13,6 @@ const server = http.createServer(app);
 const SERVER_ID = os.hostname();
 const SERVER_PORT = process.env.PORT || 3000;
 
-// Socket.io Initialisierung (für spätere Echtzeit-Features)   
-const io = new Server(server, {
-    cors: {
-        origin: "*", // Erlaubt dem Frontend den Zugriff
-        methods: ["GET", "POST"]
-    }
-});
 
 app.use(express.json());
 
@@ -44,14 +36,6 @@ app.use((req, res, next) => {
 
 app.use('/api', apiRoutes);
 
-// WebSocket Basis-Events
-io.on('connection', (socket) => {
-    console.log(`[${new Date().toISOString()}] ${SERVER_ID} | WebSocket-Client verbunden: ${socket.id}`);
-
-    socket.on('disconnect', () => {
-        console.log(`[${new Date().toISOString()}] ${SERVER_ID} | WebSocket-Client getrennt: ${socket.id}`);
-    });
-});
 
 // Port-Konfiguration
 server.listen(SERVER_PORT, '0.0.0.0', () => {
