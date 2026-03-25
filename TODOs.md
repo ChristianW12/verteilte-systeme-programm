@@ -4,10 +4,8 @@
 - Fertig!
 
 ### Projekt
-- Projekt löschen (Alex)
-- Projekt bearbeiten Bugfix (sizelimit titel & beschreibung) (Alex)
-- Mitglieder bearbeiten Bugfix: Rollenmanagement für den Projektleiter (Admin nicht mehr anzeigen z.B.) (Alex)
-- 
+- Wenn man einen User löscht, dann sollen die Tasks dieses Users der Bearbeiter auf "Kein Bearbeiter" gesetzt werden
+
 ### Task
 - Fertig!
 
