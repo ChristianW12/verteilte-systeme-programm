@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { getSessionStorage } from '../../utils/storage';
 
 type TaskDetail = {
   task_id: number;
@@ -69,7 +70,9 @@ export class DetailedTask implements OnInit {
 
     this.route.paramMap.subscribe((params) => {
       const routeTaskId = Number(params.get('id'));
-      const stateTaskId = Number((window.history.state as any)?.taskId);
+      const stateTaskId = typeof window !== 'undefined'
+        ? Number((window.history.state as any)?.taskId)
+        : NaN;
       const taskId = Number.isInteger(routeTaskId) && routeTaskId > 0 ? routeTaskId : stateTaskId;
 
       if (!taskId || !Number.isInteger(taskId) || taskId <= 0) {
@@ -86,7 +89,7 @@ export class DetailedTask implements OnInit {
   }
 
   loadTask(id: number) {
-    const userId = sessionStorage.getItem('userId');
+    const userId = getSessionStorage()?.getItem('userId');
     const userIdParam = userId ? `?user_id=${Number(userId)}` : '';
 
     this.http
@@ -137,7 +140,7 @@ export class DetailedTask implements OnInit {
   }
 
   loadAssignees(taskId: number) {
-    const userId = Number(sessionStorage.getItem('userId'));
+    const userId = Number(getSessionStorage()?.getItem('userId'));
 
     if (!Number.isInteger(userId) || userId <= 0) {
       this.assignees.set([]);
@@ -165,7 +168,7 @@ export class DetailedTask implements OnInit {
 
   saveEdit() {
     const currentTask = this.task();
-    const userId = Number(sessionStorage.getItem('userId'));
+    const userId = Number(getSessionStorage()?.getItem('userId'));
     const form = this.editForm();
 
     if (!currentTask || !Number.isInteger(userId) || userId <= 0 || !this.permissions().canEdit) {
@@ -221,7 +224,7 @@ export class DetailedTask implements OnInit {
   }
 
   onDelete() {
-    const userId = Number(sessionStorage.getItem('userId'));
+    const userId = Number(getSessionStorage()?.getItem('userId'));
     const currentTask = this.task();
 
     if (!currentTask || !Number.isInteger(userId) || userId <= 0 || !this.permissions().canDelete) {

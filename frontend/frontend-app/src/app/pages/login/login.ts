@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { getSessionStorage } from '../../utils/storage';
 
 type LoginResponse = {
   message: string;
@@ -36,22 +37,23 @@ export class Login {
       .subscribe({
         next: (response) => {
           console.log('Login erfolgreich:', response);
+          const storage = getSessionStorage();
 
           const userId = response.user?.id;
           const userEmail = response.user?.email;
 
           if (userId == null || !userEmail) {
             console.error('Ungueltige Login-Response: user.id oder user.email fehlt', response);
-            sessionStorage.removeItem('isLoggedIn');
-            sessionStorage.removeItem('userId');
-            sessionStorage.removeItem('userEmail');
+            storage?.removeItem('isLoggedIn');
+            storage?.removeItem('userId');
+            storage?.removeItem('userEmail');
             alert('Login-Antwort vom Server ist unvollstaendig. Bitte erneut versuchen.');
             return;
           }
 
-          sessionStorage.setItem('isLoggedIn', 'true');
-          sessionStorage.setItem('userId', String(userId));
-          sessionStorage.setItem('userEmail', userEmail);
+          storage?.setItem('isLoggedIn', 'true');
+          storage?.setItem('userId', String(userId));
+          storage?.setItem('userEmail', userEmail);
 
           const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
           this.router.navigateByUrl(returnUrl);

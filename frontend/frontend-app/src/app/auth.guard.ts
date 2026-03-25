@@ -1,11 +1,13 @@
 import { inject } from '@angular/core';
 import { Router, CanActivateFn } from '@angular/router';
+import { getSessionStorage } from './utils/storage';
 
 export const authGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
+  const storage = getSessionStorage();
 
   // Prüfen, ob der Nutzer eingeloggt ist (sessionStorage)
-  const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
+  const isLoggedIn = storage?.getItem('isLoggedIn') === 'true';
 
   if (isLoggedIn) {
     return true; // Zugriff erlaubt

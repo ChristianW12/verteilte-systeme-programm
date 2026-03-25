@@ -4,6 +4,7 @@ import { TaskCard, TaskCardData } from '../../shared/components/task-card/task-c
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { CdkDragDrop, DragDropModule, CdkDragStart } from '@angular/cdk/drag-drop';
+import { getSessionStorage } from '../../utils/storage';
 
 type ProjectRole = 'Developer' | 'Admin' | 'Viewer';
 
@@ -55,7 +56,7 @@ export class Dashboard implements OnInit {
   private router = inject(Router);
   private http = inject(HttpClient);
 
-  private userId = sessionStorage.getItem('userId');
+  private userId = getSessionStorage()?.getItem('userId');
 
   projects = signal<ProjectCardData[]>([]);
   selectedProjectId = signal<number | null>(null);

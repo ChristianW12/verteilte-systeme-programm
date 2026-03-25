@@ -2,6 +2,7 @@ import { DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, inject , signal} from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { getSessionStorage } from '../../utils/storage';
 
 type ProfileResponse = {
   user: {
@@ -35,7 +36,7 @@ export class Profile {
 
   loadProfile() {
 
-    const userId = sessionStorage.getItem('userId');
+    const userId = getSessionStorage()?.getItem('userId');
 
     this.http.post<ProfileResponse>('/api/auth/profile', { userId })
       .subscribe({
@@ -53,9 +54,10 @@ export class Profile {
   }
 
   logout() {
-    sessionStorage.removeItem('isLoggedIn');
-    sessionStorage.removeItem('userId');
-    sessionStorage.removeItem('userEmail');
+    const storage = getSessionStorage();
+    storage?.removeItem('isLoggedIn');
+    storage?.removeItem('userId');
+    storage?.removeItem('userEmail');
     alert('Erfolgreich ausgeloggt');
     this.router.navigate(['/home']);
   }

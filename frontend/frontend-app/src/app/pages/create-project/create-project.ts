@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { getSessionStorage } from '../../utils/storage';
 
 type UserSuggestion = {
   user_id: number;
@@ -145,7 +146,7 @@ export class CreateProject {
   }
 
   onSubmit(): void {
-    const createdByRaw = sessionStorage.getItem('userId');
+    const createdByRaw = getSessionStorage()?.getItem('userId');
     const createdBy = Number(createdByRaw);
 
     if (!createdByRaw || !Number.isInteger(createdBy) || createdBy <= 0) {

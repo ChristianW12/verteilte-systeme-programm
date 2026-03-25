@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { getSessionStorage } from '../../utils/storage';
 
 @Component({
   selector: 'app-edit-profile',
@@ -21,7 +22,7 @@ export class EditProfile implements OnInit {
   passwortBestaetigen = signal('');
   aktuellesPassword = signal('');
 
-  private userId = signal(sessionStorage.getItem('userId') || '');
+  private userId = signal(getSessionStorage()?.getItem('userId') || '');
   private emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   ngOnInit() {
@@ -144,9 +145,10 @@ export class EditProfile implements OnInit {
       .subscribe({
         next: (res: any) => {
           alert('Profil erfolgreich gelöscht. Du wirst abgemeldet.');
-          sessionStorage.removeItem('isLoggedIn');
-          sessionStorage.removeItem('userId');
-          sessionStorage.removeItem('userEmail');
+          const storage = getSessionStorage();
+          storage?.removeItem('isLoggedIn');
+          storage?.removeItem('userId');
+          storage?.removeItem('userEmail');
           setTimeout(() => {
             this.router.navigate(['/login']);
           }, 1000);

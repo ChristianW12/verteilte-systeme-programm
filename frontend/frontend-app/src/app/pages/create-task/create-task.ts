@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Component, OnInit, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { getSessionStorage } from '../../utils/storage';
 
 type Project = {
   project_id: number;
@@ -73,7 +74,7 @@ export class CreateTask implements OnInit {
     const day = String(today.getDate()).padStart(2, '0');
     this.minDate = `${year}-${month}-${day}`;
 
-    const userId = sessionStorage.getItem('userId');
+    const userId = getSessionStorage()?.getItem('userId');
     if (!userId) {
       alert('Bitte zuerst einloggen.');
       return;
@@ -109,7 +110,7 @@ export class CreateTask implements OnInit {
   }
 
   onSubmit(): void {
-    const userId = sessionStorage.getItem('userId');
+    const userId = getSessionStorage()?.getItem('userId');
 
     if (!userId) {
       alert('Bitte zuerst einloggen.');

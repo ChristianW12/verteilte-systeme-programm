@@ -3,6 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { getSessionStorage } from '../../utils/storage';
 
 type ProjectFromApi = {
   project_id: number;
@@ -85,7 +86,7 @@ export class EditProject implements OnInit, OnDestroy {
 
 
   ngOnInit(): void {
-    const userIdRaw = sessionStorage.getItem('userId');
+    const userIdRaw = getSessionStorage()?.getItem('userId');
     const userId = Number(userIdRaw);
 
     if (!userIdRaw || !Number.isInteger(userId) || userId <= 0) {
