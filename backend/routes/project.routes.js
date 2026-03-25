@@ -14,11 +14,15 @@ router.post("/create", async (req, res) => {
 
   // Längenvaldierung für Titel und Beschreibung
   if (String(name).trim().length > 80) {
-    return res.status(400).json({ message: "Projekttitel darf maximal 80 Zeichen lang sein" });
+    return res
+      .status(400)
+      .json({ message: "Projekttitel darf maximal 80 Zeichen lang sein" });
   }
 
   if (description && String(description).trim().length > 500) {
-    return res.status(400).json({ message: "Beschreibung darf maximal 500 Zeichen lang sein" });
+    return res
+      .status(400)
+      .json({ message: "Beschreibung darf maximal 500 Zeichen lang sein" });
   }
 
   if (!Number.isInteger(createdById) || createdById <= 0) {
@@ -29,7 +33,9 @@ router.post("/create", async (req, res) => {
   const rawMembers = Array.isArray(members) ? members : [];
   const normalizedMembers = rawMembers
     .map((member) => ({
-      email: String(member?.email || "").trim().toLowerCase(),
+      email: String(member?.email || "")
+        .trim()
+        .toLowerCase(),
       role: allowedRoles.has(member?.role) ? member.role : "Viewer",
     }))
     .filter((member) => member.email.length > 0);
@@ -73,7 +79,11 @@ router.post("/create", async (req, res) => {
 
       const [insertProjectResult] = await connection.execute(
         "INSERT INTO projects (name, description, created_by) VALUES (?, ?, ?)",
-        [String(name).trim(), String(description || "").trim() || null, createdById],
+        [
+          String(name).trim(),
+          String(description || "").trim() || null,
+          createdById,
+        ],
       );
 
       const projectId = insertProjectResult.insertId;
@@ -101,6 +111,12 @@ router.post("/create", async (req, res) => {
 
       await connection.commit();
 
+      await publishEvent("project.created", {
+        projectId,
+        name,
+        createdBy: createdById,
+      });
+
       return res.status(201).json({
         message: "Projekt erfolgreich erstellt",
         project_id: projectId,
@@ -117,7 +133,6 @@ router.post("/create", async (req, res) => {
   }
 });
 
-
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Project löschen darf
 router.post("/delete", async (req, res) => {
   const { project_id, user_id } = req.body;
@@ -126,8 +141,15 @@ router.post("/delete", async (req, res) => {
   const userId = Number(user_id);
 
   // Input-Validierung
-  if (!Number.isInteger(projectId) || projectId <= 0 || !Number.isInteger(userId) || userId <= 0) {
-    return res.status(400).json({ message: "Ungültige project_id oder user_id" });
+  if (
+    !Number.isInteger(projectId) ||
+    projectId <= 0 ||
+    !Number.isInteger(userId) ||
+    userId <= 0
+  ) {
+    return res
+      .status(400)
+      .json({ message: "Ungültige project_id oder user_id" });
   }
 
   try {
@@ -143,14 +165,13 @@ router.post("/delete", async (req, res) => {
 
     const project = projectRows[0];
     if (Number(project.created_by) !== userId) {
-      return res.status(403).json({ message: "Keine Berechtigung zum Löschen dieses Projekts" });
+      return res
+        .status(403)
+        .json({ message: "Keine Berechtigung zum Löschen dieses Projekts" });
     }
 
     // 2. Lösche das Projekt (Tasks werden durch ON DELETE CASCADE automatisch gelöscht)
-    await db.execute(
-      "DELETE FROM projects WHERE project_id = ?",
-      [projectId],
-    );
+    await db.execute("DELETE FROM projects WHERE project_id = ?", [projectId]);
 
     return res.status(200).json({
       message: "Projekt erfolgreich gelöscht",
@@ -168,8 +189,15 @@ router.post("/edit", async (req, res) => {
   const userId = Number(user_id);
 
   // Input-Validierung
-  if (!Number.isInteger(projectId) || projectId <= 0 || !Number.isInteger(userId) || userId <= 0) {
-    return res.status(400).json({ message: "Ungueltige project_id oder user_id" });
+  if (
+    !Number.isInteger(projectId) ||
+    projectId <= 0 ||
+    !Number.isInteger(userId) ||
+    userId <= 0
+  ) {
+    return res
+      .status(400)
+      .json({ message: "Ungueltige project_id oder user_id" });
   }
 
   if (!name || !String(name).trim()) {
@@ -178,18 +206,24 @@ router.post("/edit", async (req, res) => {
 
   // Längenvaldierung für Titel und Beschreibung
   if (String(name).trim().length > 80) {
-    return res.status(400).json({ message: "Projekttitel darf maximal 80 Zeichen lang sein" });
+    return res
+      .status(400)
+      .json({ message: "Projekttitel darf maximal 80 Zeichen lang sein" });
   }
 
   if (description && String(description).trim().length > 500) {
-    return res.status(400).json({ message: "Beschreibung darf maximal 500 Zeichen lang sein" });
+    return res
+      .status(400)
+      .json({ message: "Beschreibung darf maximal 500 Zeichen lang sein" });
   }
 
   const allowedRoles = new Set(["Admin", "Developer", "Viewer"]);
   const rawMembers = Array.isArray(members) ? members : [];
   const normalizedMembers = rawMembers
     .map((member) => ({
-      email: String(member?.email || "").trim().toLowerCase(),
+      email: String(member?.email || "")
+        .trim()
+        .toLowerCase(),
       role: allowedRoles.has(member?.role) ? member.role : "Viewer",
     }))
     .filter((member) => member.email.length > 0);
@@ -217,7 +251,9 @@ router.post("/edit", async (req, res) => {
 
     if (adminRows.length === 0) {
       await connection.rollback();
-      return res.status(403).json({ message: "Keine Berechtigung zum Bearbeiten dieses Projekts" });
+      return res
+        .status(403)
+        .json({ message: "Keine Berechtigung zum Bearbeiten dieses Projekts" });
     }
 
     const createdBy = adminRows[0].created_by;
@@ -225,7 +261,11 @@ router.post("/edit", async (req, res) => {
     // 2. Update Projektdaten (Name, Beschreibung)
     await connection.execute(
       "UPDATE projects SET name = ?, description = ? WHERE project_id = ?",
-      [String(name).trim(), String(description || "").trim() || null, projectId],
+      [
+        String(name).trim(),
+        String(description || "").trim() || null,
+        projectId,
+      ],
     );
 
     // 3. Lade bestehende Member
@@ -237,7 +277,10 @@ router.post("/edit", async (req, res) => {
     );
 
     const existingMemberMap = new Map(
-      existingMembers.map((member) => [String(member.email).toLowerCase(), member]),
+      existingMembers.map((member) => [
+        String(member.email).toLowerCase(),
+        member,
+      ]),
     );
 
     // 4. Lade User-IDs fuer neue/geaenderte Member
@@ -303,24 +346,25 @@ router.post("/edit", async (req, res) => {
     }
 
     // 6. Pruefe Regeln: mindestens 1 Admin muss bleiben
-    const adminCountAfterChanges = existingMembers
-      .filter(
-        (member) =>
-          member.user_id !== createdBy ||
-          !toDelete.includes(member.user_id),
-      )
-      .filter(
-        (member) =>
-          member.role === "Admin" ||
-          toRoleUpdate.find(
-            (u) => u.user_id === member.user_id && u.new_role === "Admin",
-          ),
-      ).length +
-      toAdd.filter((member) => member.role === "Admin").length;
+    const adminCountAfterChanges =
+      existingMembers
+        .filter(
+          (member) =>
+            member.user_id !== createdBy || !toDelete.includes(member.user_id),
+        )
+        .filter(
+          (member) =>
+            member.role === "Admin" ||
+            toRoleUpdate.find(
+              (u) => u.user_id === member.user_id && u.new_role === "Admin",
+            ),
+        ).length + toAdd.filter((member) => member.role === "Admin").length;
 
     if (adminCountAfterChanges < 1) {
       await connection.rollback();
-      return res.status(400).json({ message: "Es muss mindestens ein Admin im Projekt bleiben" });
+      return res
+        .status(400)
+        .json({ message: "Es muss mindestens ein Admin im Projekt bleiben" });
     }
 
     // 7. Fuehre Aenderungen aus
@@ -347,6 +391,12 @@ router.post("/edit", async (req, res) => {
 
     // 8. Commit
     await connection.commit();
+
+    await publishEvent("project.updated", {
+      projectId,
+      name,
+      createdBy: createdById,
+    });
 
     return res.status(200).json({
       message: "Projekt erfolgreich aktualisiert",

@@ -1,11 +1,12 @@
-'use strict';
+"use strict";
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const db = require('../db');
+const db = require("../db");
+const { publishEvent } = require("../realtime.publisher");
 
-const allowedStatus = ['To Do', 'In Progress', 'Done', 'Blocked'];
-const allowedPriority = ['Low', 'Medium', 'High'];
+const allowedStatus = ["To Do", "In Progress", "Done", "Blocked"];
+const allowedPriority = ["Low", "Medium", "High"];
 
 async function getTaskPermissionContext(taskId, userId) {
   const [taskRows] = await db.execute(
@@ -28,10 +29,11 @@ async function getTaskPermissionContext(taskId, userId) {
     [task.project_id, userId],
   );
 
-  const rawRole = memberRows.length > 0 ? String(memberRows[0].role) : '';
+  const rawRole = memberRows.length > 0 ? String(memberRows[0].role) : "";
   const role = rawRole.toLowerCase();
-  const isAdmin = role === 'admin';
-  const isAssignedDeveloper = role === 'developer' && Number(task.assigned_to) === userId;
+  const isAdmin = role === "admin";
+  const isAssignedDeveloper =
+    role === "developer" && Number(task.assigned_to) === userId;
 
   return {
     task,
@@ -42,12 +44,21 @@ async function getTaskPermissionContext(taskId, userId) {
   };
 }
 
-router.post('/create', async (req, res) => {
-  const { project_id, title, description, status, priority, deadline, created_by, assigned_to } = req.body;
+router.post("/create", async (req, res) => {
+  const {
+    project_id,
+    title,
+    description,
+    status,
+    priority,
+    deadline,
+    created_by,
+    assigned_to,
+  } = req.body;
 
   if (!project_id || !title || !created_by) {
     return res.status(400).json({
-      message: 'project_id, title und created_by sind erforderlich',
+      message: "project_id, title und created_by sind erforderlich",
     });
   }
 
@@ -55,64 +66,69 @@ router.post('/create', async (req, res) => {
   const createdBy = Number(created_by);
   const cleanTitle = String(title).trim();
   const cleanDescription = description ? String(description).trim() : null;
-  const taskStatus = status || 'To Do';
-  const taskPriority = priority || 'Medium';
+  const taskStatus = status || "To Do";
+  const taskPriority = priority || "Medium";
   const taskDeadline = deadline || null;
   const assignedToId = assigned_to ? Number(assigned_to) : null;
 
-  if (!Number.isInteger(projectId) || projectId <= 0 || !Number.isInteger(createdBy) || createdBy <= 0) {
+  if (
+    !Number.isInteger(projectId) ||
+    projectId <= 0 ||
+    !Number.isInteger(createdBy) ||
+    createdBy <= 0
+  ) {
     return res.status(400).json({
-      message: 'project_id und created_by muessen gueltige Zahlen sein',
+      message: "project_id und created_by muessen gueltige Zahlen sein",
     });
   }
 
   if (!cleanTitle) {
     return res.status(400).json({
-      message: 'Titel darf nicht leer sein',
+      message: "Titel darf nicht leer sein",
     });
   }
 
   if (cleanTitle.length > 50) {
     return res.status(400).json({
-      message: 'Titel darf maximal 50 Zeichen lang sein',
+      message: "Titel darf maximal 50 Zeichen lang sein",
     });
   }
 
   if (cleanDescription && cleanDescription.length > 1000) {
     return res.status(400).json({
-      message: 'Beschreibung darf maximal 1000 Zeichen lang sein',
+      message: "Beschreibung darf maximal 1000 Zeichen lang sein",
     });
   }
 
   if (!allowedStatus.includes(taskStatus)) {
     return res.status(400).json({
-      message: 'Ungueltiger Status',
+      message: "Ungueltiger Status",
     });
   }
 
   if (!allowedPriority.includes(taskPriority)) {
     return res.status(400).json({
-      message: 'Ungueltige Prioritaet',
+      message: "Ungueltige Prioritaet",
     });
   }
 
   try {
     const [projectRows] = await db.execute(
-      'SELECT project_id FROM projects WHERE project_id = ?',
+      "SELECT project_id FROM projects WHERE project_id = ?",
       [projectId],
     );
 
     if (projectRows.length === 0) {
-      return res.status(404).json({ message: 'Projekt nicht gefunden' });
+      return res.status(404).json({ message: "Projekt nicht gefunden" });
     }
 
     const [userRows] = await db.execute(
-      'SELECT user_id FROM users WHERE user_id = ?',
+      "SELECT user_id FROM users WHERE user_id = ?",
       [createdBy],
     );
 
     if (userRows.length === 0) {
-      return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+      return res.status(404).json({ message: "Benutzer nicht gefunden" });
     }
 
     // Wenn assigned_to gesetzt ist, prüfe ob der Bearbeiter ein gültiges Projektmitglied ist
@@ -127,11 +143,13 @@ router.post('/create', async (req, res) => {
       );
 
       if (assigneeRows.length === 0) {
-        return res.status(400).json({ message: 'Der Bearbeiter ist kein gueltiges Projektmitglied' });
+        return res.status(400).json({
+          message: "Der Bearbeiter ist kein gueltiges Projektmitglied",
+        });
       }
     }
 
-    await db.execute(
+    const [insertResult] = await db.execute(
       `INSERT INTO tasks (
         project_id,
         title,
@@ -142,113 +160,167 @@ router.post('/create', async (req, res) => {
         created_by,
         assigned_to
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [projectId, cleanTitle, cleanDescription, taskStatus, taskPriority, taskDeadline, createdBy, assignedToId],
+      [
+        projectId,
+        cleanTitle,
+        cleanDescription,
+        taskStatus,
+        taskPriority,
+        taskDeadline,
+        createdBy,
+        assignedToId,
+      ],
     );
 
-    return res.status(201).json({ message: 'Task erfolgreich erstellt' });
+    const newTaskId = insertResult.insertId;
+    await publishEvent("task.created", {
+      taskId: newTaskId,
+      projectId,
+      title: cleanTitle,
+      createdBy,
+    });
+
+    return res.status(201).json({ message: "Task erfolgreich erstellt" });
   } catch (error) {
-    console.error('Fehler beim Erstellen der Task:', error);
-    return res.status(500).json({ message: 'Interner Serverfehler' });
+    console.error("Fehler beim Erstellen der Task:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Task löschen darf
-router.post('/delete', async (req, res) => {
+router.post("/delete", async (req, res) => {
   const { task_id, user_id } = req.body;
 
   const taskId = Number(task_id);
   const userId = Number(user_id);
 
-  if (!Number.isInteger(taskId) || taskId <= 0 || !Number.isInteger(userId) || userId <= 0) {
-    return res.status(400).json({ message: 'task_id und user_id muessen gueltige Zahlen sein' });
+  if (
+    !Number.isInteger(taskId) ||
+    taskId <= 0 ||
+    !Number.isInteger(userId) ||
+    userId <= 0
+  ) {
+    return res
+      .status(400)
+      .json({ message: "task_id und user_id muessen gueltige Zahlen sein" });
   }
 
   try {
     const permissions = await getTaskPermissionContext(taskId, userId);
 
     if (!permissions.task) {
-      return res.status(404).json({ message: 'Task nicht gefunden' });
+      return res.status(404).json({ message: "Task nicht gefunden" });
     }
 
     if (!permissions.canDelete) {
-      return res.status(403).json({ message: 'Keine Berechtigung zum Loeschen dieser Task' });
+      return res
+        .status(403)
+        .json({ message: "Keine Berechtigung zum Loeschen dieser Task" });
     }
 
-    await db.execute('DELETE FROM tasks WHERE task_id = ?', [taskId]);
+    await db.execute("DELETE FROM tasks WHERE task_id = ?", [taskId]);
 
-    return res.status(200).json({ message: 'Task erfolgreich geloescht' });
+    await publishEvent("task.deleted", {
+      taskId,
+      projectId: permissions.task.project_id,
+    });
+
+    return res.status(200).json({ message: "Task erfolgreich geloescht" });
   } catch (error) {
-    console.error('Fehler beim Loeschen der Task:', error);
-    return res.status(500).json({ message: 'Interner Serverfehler' });
+    console.error("Fehler beim Loeschen der Task:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
 // TODO: edit route for editing a task
 // IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Task bearbeiten darf
-router.post('/edit', async (req, res) => {
-  const { task_id, user_id, title, description, status, priority, deadline, assigned_to } = req.body;
+router.post("/edit", async (req, res) => {
+  const {
+    task_id,
+    user_id,
+    title,
+    description,
+    status,
+    priority,
+    deadline,
+    assigned_to,
+  } = req.body;
 
   const taskId = Number(task_id);
   const userId = Number(user_id);
 
-  if (!Number.isInteger(taskId) || taskId <= 0 || !Number.isInteger(userId) || userId <= 0) {
-    return res.status(400).json({ message: 'task_id und user_id muessen gueltige Zahlen sein' });
+  if (
+    !Number.isInteger(taskId) ||
+    taskId <= 0 ||
+    !Number.isInteger(userId) ||
+    userId <= 0
+  ) {
+    return res
+      .status(400)
+      .json({ message: "task_id und user_id muessen gueltige Zahlen sein" });
   }
 
-  const cleanTitle = String(title || '').trim();
-  const cleanDescription = description !== undefined ? String(description || '').trim() : null;
-  const nextStatus = status || 'To Do';
-  const nextPriority = priority || 'Medium';
+  const cleanTitle = String(title || "").trim();
+  const cleanDescription =
+    description !== undefined ? String(description || "").trim() : null;
+  const nextStatus = status || "To Do";
+  const nextPriority = priority || "Medium";
   const nextDeadline = deadline || null;
 
   if (!cleanTitle) {
-    return res.status(400).json({ message: 'Titel darf nicht leer sein' });
+    return res.status(400).json({ message: "Titel darf nicht leer sein" });
   }
 
   if (cleanTitle.length > 50) {
     return res.status(400).json({
-      message: 'Titel darf maximal 50 Zeichen lang sein',
+      message: "Titel darf maximal 50 Zeichen lang sein",
     });
   }
 
   if (cleanDescription && cleanDescription.length > 1000) {
     return res.status(400).json({
-      message: 'Beschreibung darf maximal 1000 Zeichen lang sein',
+      message: "Beschreibung darf maximal 1000 Zeichen lang sein",
     });
   }
 
   if (!allowedStatus.includes(nextStatus)) {
-    return res.status(400).json({ message: 'Ungueltiger Status' });
+    return res.status(400).json({ message: "Ungueltiger Status" });
   }
 
   if (!allowedPriority.includes(nextPriority)) {
-    return res.status(400).json({ message: 'Ungueltige Prioritaet' });
+    return res.status(400).json({ message: "Ungueltige Prioritaet" });
   }
 
   try {
     const permissions = await getTaskPermissionContext(taskId, userId);
 
     if (!permissions.task) {
-      return res.status(404).json({ message: 'Task nicht gefunden' });
+      return res.status(404).json({ message: "Task nicht gefunden" });
     }
 
     if (!permissions.canEdit) {
-      return res.status(403).json({ message: 'Keine Berechtigung zum Bearbeiten dieser Task' });
+      return res
+        .status(403)
+        .json({ message: "Keine Berechtigung zum Bearbeiten dieser Task" });
     }
 
     let nextAssignedTo = permissions.task.assigned_to;
 
     if (assigned_to !== undefined) {
       if (!permissions.canEditAssignee) {
-        return res.status(403).json({ message: 'Nur Admin darf den Bearbeiter aendern' });
+        return res
+          .status(403)
+          .json({ message: "Nur Admin darf den Bearbeiter aendern" });
       }
 
-      if (assigned_to === null || assigned_to === '') {
+      if (assigned_to === null || assigned_to === "") {
         nextAssignedTo = null;
       } else {
         const parsedAssignedTo = Number(assigned_to);
         if (!Number.isInteger(parsedAssignedTo) || parsedAssignedTo <= 0) {
-          return res.status(400).json({ message: 'assigned_to muss eine gueltige Zahl oder leer sein' });
+          return res.status(400).json({
+            message: "assigned_to muss eine gueltige Zahl oder leer sein",
+          });
         }
 
         const [assigneeRows] = await db.execute(
@@ -261,7 +333,9 @@ router.post('/edit', async (req, res) => {
         );
 
         if (assigneeRows.length === 0) {
-          return res.status(400).json({ message: 'Der Bearbeiter ist kein gueltiges Projektmitglied' });
+          return res.status(400).json({
+            message: "Der Bearbeiter ist kein gueltiges Projektmitglied",
+          });
         }
 
         nextAssignedTo = parsedAssignedTo;
@@ -277,41 +351,63 @@ router.post('/edit', async (req, res) => {
            deadline = ?,
            assigned_to = ?
        WHERE task_id = ?`,
-      [cleanTitle, cleanDescription, nextStatus, nextPriority, nextDeadline, nextAssignedTo, taskId],
+      [
+        cleanTitle,
+        cleanDescription,
+        nextStatus,
+        nextPriority,
+        nextDeadline,
+        nextAssignedTo,
+        taskId,
+      ],
     );
 
-    return res.status(200).json({ message: 'Task erfolgreich bearbeitet' });
+    await publishEvent("task.updated", {
+      taskId,
+      projectId: permissions.task.project_id,
+      title: cleanTitle,
+    });
+
+    return res.status(200).json({ message: "Task erfolgreich bearbeitet" });
   } catch (error) {
-    console.error('Fehler beim Bearbeiten der Task:', error);
-    return res.status(500).json({ message: 'Interner Serverfehler' });
+    console.error("Fehler beim Bearbeiten der Task:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
-router.post('/edit/updateStatus', async (req, res) => {
+router.post("/edit/updateStatus", async (req, res) => {
   const { task_id, user_id, status } = req.body;
-  
+
   const taskId = Number(task_id);
   const userId = Number(user_id);
-  const nextStatus = status || '';
+  const nextStatus = status || "";
 
   try {
-
-    if (!Number.isInteger(taskId) || taskId <= 0 || !Number.isInteger(userId) || userId <= 0) {
-      return res.status(400).json({ message: 'task_id und user_id muessen gueltige Zahlen sein' });
+    if (
+      !Number.isInteger(taskId) ||
+      taskId <= 0 ||
+      !Number.isInteger(userId) ||
+      userId <= 0
+    ) {
+      return res
+        .status(400)
+        .json({ message: "task_id und user_id muessen gueltige Zahlen sein" });
     }
 
     const permissions = await getTaskPermissionContext(taskId, userId);
 
     if (!permissions.task) {
-      return res.status(404).json({ message: 'Task nicht gefunden' });
+      return res.status(404).json({ message: "Task nicht gefunden" });
     }
 
     if (!permissions.canEdit) {
-      return res.status(403).json({ message: 'Keine Berechtigung zum Bearbeiten dieser Task' });
+      return res
+        .status(403)
+        .json({ message: "Keine Berechtigung zum Bearbeiten dieser Task" });
     }
 
     if (!allowedStatus.includes(nextStatus)) {
-      return res.status(400).json({ message: 'Ungueltiger Status' });
+      return res.status(400).json({ message: "Ungueltiger Status" });
     }
 
     await db.execute(
@@ -321,30 +417,45 @@ router.post('/edit/updateStatus', async (req, res) => {
       [nextStatus, taskId],
     );
 
-    return res.status(200).json({ message: 'Task-Status erfolgreich aktualisiert' });
+    await publishEvent("task.statusUpdated", {
+      taskId,
+      projectId: permissions.task.project_id,
+      status: nextStatus,
+    });
+
+    return res
+      .status(200)
+      .json({ message: "Task-Status erfolgreich aktualisiert" });
   } catch (error) {
-    console.error('Fehler beim Aktualisieren des Task-Status:', error);
-    return res.status(500).json({ message: 'Interner Serverfehler' });
+    console.error("Fehler beim Aktualisieren des Task-Status:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
-router.get('/:id/assignees', async (req, res) => {
+router.get("/:id/assignees", async (req, res) => {
   const taskId = Number(req.params.id);
   const userId = Number(req.query.user_id);
 
-  if (!Number.isInteger(taskId) || taskId <= 0 || !Number.isInteger(userId) || userId <= 0) {
-    return res.status(400).json({ message: 'Ungueltige taskId oder user_id' });
+  if (
+    !Number.isInteger(taskId) ||
+    taskId <= 0 ||
+    !Number.isInteger(userId) ||
+    userId <= 0
+  ) {
+    return res.status(400).json({ message: "Ungueltige taskId oder user_id" });
   }
 
   try {
     const permissions = await getTaskPermissionContext(taskId, userId);
 
     if (!permissions.task) {
-      return res.status(404).json({ message: 'Task nicht gefunden' });
+      return res.status(404).json({ message: "Task nicht gefunden" });
     }
 
     if (!permissions.canEditAssignee) {
-      return res.status(403).json({ message: 'Nur Admin darf Bearbeiter laden' });
+      return res
+        .status(403)
+        .json({ message: "Nur Admin darf Bearbeiter laden" });
     }
 
     const [assignees] = await db.execute(
@@ -359,17 +470,17 @@ router.get('/:id/assignees', async (req, res) => {
 
     return res.status(200).json({ assignees });
   } catch (error) {
-    console.error('Fehler beim Laden der Bearbeiter:', error);
-    return res.status(500).json({ message: 'Interner Serverfehler' });
+    console.error("Fehler beim Laden der Bearbeiter:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
-router.get('/:id', async (req, res) => {
+router.get("/:id", async (req, res) => {
   const taskId = Number(req.params.id);
   const userId = Number(req.query.user_id);
 
   if (!Number.isInteger(taskId) || taskId <= 0) {
-    return res.status(400).json({ message: 'Ungueltige Task-ID' });
+    return res.status(400).json({ message: "Ungueltige Task-ID" });
   }
 
   try {
@@ -383,7 +494,7 @@ router.get('/:id', async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'Task nicht gefunden' });
+      return res.status(404).json({ message: "Task nicht gefunden" });
     }
 
     const task = rows[0];
@@ -398,7 +509,11 @@ router.get('/:id', async (req, res) => {
       assigned_to_id: task.assigned_to || null,
     };
 
-    let permissions = { canEdit: false, canDelete: false, canEditAssignee: false };
+    let permissions = {
+      canEdit: false,
+      canDelete: false,
+      canEditAssignee: false,
+    };
 
     if (Number.isInteger(userId) && userId > 0) {
       const permissionContext = await getTaskPermissionContext(taskId, userId);
@@ -411,16 +526,16 @@ router.get('/:id', async (req, res) => {
 
     return res.status(200).json({ task: normalized, permissions });
   } catch (error) {
-    console.error('Fehler beim Laden der Task:', error);
-    return res.status(500).json({ message: 'Interner Serverfehler' });
+    console.error("Fehler beim Laden der Task:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
-router.get('/project/:projectId', async (req, res) => {
+router.get("/project/:projectId", async (req, res) => {
   const projectId = Number(req.params.projectId);
 
   if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ message: 'Ungueltige projectId' });
+    return res.status(400).json({ message: "Ungueltige projectId" });
   }
 
   try {
@@ -442,17 +557,19 @@ router.get('/project/:projectId', async (req, res) => {
 
     return res.status(200).json({ tasks });
   } catch (error) {
-    console.error('Fehler beim Laden der Tasks:', error);
-    return res.status(500).json({ message: 'Interner Serverfehler' });
+    console.error("Fehler beim Laden der Tasks:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
-router.post('/get', async (req, res) => {
+router.post("/get", async (req, res) => {
   const { user_id } = req.body;
   const userId = Number(user_id);
 
   if (!Number.isInteger(userId) || userId <= 0) {
-    return res.status(400).json({ message: 'user_id muss eine gueltige Zahl sein' });
+    return res
+      .status(400)
+      .json({ message: "user_id muss eine gueltige Zahl sein" });
   }
 
   try {
@@ -468,10 +585,9 @@ router.post('/get', async (req, res) => {
 
     return res.json({ projects });
   } catch (error) {
-    console.error('Fehler beim Laden der Projekte:', error);
-    return res.status(500).json({ message: 'Interner Serverfehler' });
+    console.error("Fehler beim Laden der Projekte:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
 module.exports = router;
-
