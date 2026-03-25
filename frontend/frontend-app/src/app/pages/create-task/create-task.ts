@@ -4,6 +4,8 @@ import { Component, OnInit, inject, signal, effect } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { getSessionStorage } from '../../utils/storage';
+import { RealtimeService } from '../../shared/services/realtime';
+
 
 type Project = {
   project_id: number;
@@ -38,6 +40,7 @@ export class CreateTask implements OnInit {
 
   private router = inject(Router);
   private http = inject(HttpClient);
+  private realtime = inject(RealtimeService);
 
   projects = signal<Project[]>([]);
   allUsers = signal<User[]>([]);
@@ -153,6 +156,7 @@ export class CreateTask implements OnInit {
 
     this.http.post<CreateTaskResponse>('/api/tasks/create', payload).subscribe({
       next: (response) => {
+        console.log('✅ Task erstellt - Event wird vom Server publiziert');
         this.router.navigate(['/dashboard']);
         alert(response.message || 'Task erfolgreich erstellt');
         this.projectId = '';

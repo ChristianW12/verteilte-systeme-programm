@@ -3,6 +3,7 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
+const { publishEvent } = require("../realtime.publisher");
 
 router.post("/create", async (req, res) => {
   const { name, description, createdBy, members } = req.body;
@@ -395,7 +396,7 @@ router.post("/edit", async (req, res) => {
     await publishEvent("project.updated", {
       projectId,
       name,
-      createdBy: createdById,
+      createdBy: userId,
     });
 
     return res.status(200).json({

@@ -1,13 +1,13 @@
 import { TestBed } from '@angular/core/testing';
 
-import { Realtime } from './realtime';
+import { RealtimeService } from './realtime';
 
-describe('Realtime', () => {
-  let service: Realtime;
+describe('RealtimeService', () => {
+  let service: RealtimeService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({});
-    service = TestBed.inject(Realtime);
+    service = TestBed.inject(RealtimeService);
   });
 
   it('should be created', () => {

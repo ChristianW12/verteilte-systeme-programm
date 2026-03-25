@@ -48,7 +48,9 @@ async function startRedisBridge() {
   });
 
   await subscriber.connect();
+  
   await subscriber.subscribe(REDIS_CHANNEL, (message) => {
+    console.log('[websockets] received event from', REDIS_CHANNEL);
     broadcast(message);
   });
 

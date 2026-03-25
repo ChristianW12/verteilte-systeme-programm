@@ -1,10 +1,11 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnInit, signal, effect } from '@angular/core';
 import { ProjectCard, ProjectCardData } from '../../shared/components/project-card/project-card';
 import { TaskCard, TaskCardData } from '../../shared/components/task-card/task-card';
 import { Router, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { CdkDragDrop, DragDropModule, CdkDragStart } from '@angular/cdk/drag-drop';
 import { getSessionStorage } from '../../utils/storage';
+import { RealtimeService } from '../../shared/services/realtime';
 
 type ProjectRole = 'Developer' | 'Admin' | 'Viewer';
 
@@ -55,6 +56,7 @@ export class Dashboard implements OnInit {
 
   private router = inject(Router);
   private http = inject(HttpClient);
+  private realtime = inject(RealtimeService);
 
   private userId = getSessionStorage()?.getItem('userId');
 
@@ -73,6 +75,21 @@ export class Dashboard implements OnInit {
   blockedTasks = computed(() => this.getFilteredTasks().filter((task) => task.status === 'Blocked'));
 
   private userIdResponse = signal<number | null>(null);
+
+  constructor() {
+    // Beobachte das refreshRequired Signal vom RealtimeService
+    effect(() => {
+      if (this.realtime.refreshRequired()) {
+        console.log('🔄 [Dashboard] Neuer Event vom Server - lade Tasks neu');
+        const projectId = this.selectedProjectId();
+        if (projectId) {
+          this.loadTasksForProject(projectId);
+        }
+        // Signal zurücksetzen, damit der nächste Event wieder triggert
+        this.realtime.refreshRequired.set(false);
+      }
+    }, { allowSignalWrites: true });
+  }
 
   private normalizeProjectRole(role: unknown): ProjectRole {
     return role === 'Admin' || role === 'Developer' || role === 'Viewer' ? role : 'Viewer';
