@@ -143,7 +143,7 @@ export class CreateProject {
   }
 
   onSubmit(): void {
-    const createdByRaw = localStorage.getItem('userId');
+    const createdByRaw = sessionStorage.getItem('userId');
     const createdBy = Number(createdByRaw);
 
     if (!createdByRaw || !Number.isInteger(createdBy) || createdBy <= 0) {
@@ -197,5 +197,6 @@ export class CreateProject {
   }
 
 }
+
 
 

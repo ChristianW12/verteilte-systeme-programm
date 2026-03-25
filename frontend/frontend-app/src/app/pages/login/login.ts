@@ -42,16 +42,16 @@ export class Login {
 
           if (userId == null || !userEmail) {
             console.error('Ungueltige Login-Response: user.id oder user.email fehlt', response);
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('userId');
-            localStorage.removeItem('userEmail');
+            sessionStorage.removeItem('isLoggedIn');
+            sessionStorage.removeItem('userId');
+            sessionStorage.removeItem('userEmail');
             alert('Login-Antwort vom Server ist unvollstaendig. Bitte erneut versuchen.');
             return;
           }
 
-          localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('userId', String(userId));
-          localStorage.setItem('userEmail', userEmail);
+          sessionStorage.setItem('isLoggedIn', 'true');
+          sessionStorage.setItem('userId', String(userId));
+          sessionStorage.setItem('userEmail', userEmail);
 
           const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
           this.router.navigateByUrl(returnUrl);
@@ -63,4 +63,5 @@ export class Login {
       });
   }
 }
+
 

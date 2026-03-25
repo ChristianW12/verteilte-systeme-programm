@@ -86,7 +86,7 @@ export class DetailedTask implements OnInit {
   }
 
   loadTask(id: number) {
-    const userId = localStorage.getItem('userId');
+    const userId = sessionStorage.getItem('userId');
     const userIdParam = userId ? `?user_id=${Number(userId)}` : '';
 
     this.http
@@ -137,7 +137,7 @@ export class DetailedTask implements OnInit {
   }
 
   loadAssignees(taskId: number) {
-    const userId = Number(localStorage.getItem('userId'));
+    const userId = Number(sessionStorage.getItem('userId'));
 
     if (!Number.isInteger(userId) || userId <= 0) {
       this.assignees.set([]);
@@ -165,7 +165,7 @@ export class DetailedTask implements OnInit {
 
   saveEdit() {
     const currentTask = this.task();
-    const userId = Number(localStorage.getItem('userId'));
+    const userId = Number(sessionStorage.getItem('userId'));
     const form = this.editForm();
 
     if (!currentTask || !Number.isInteger(userId) || userId <= 0 || !this.permissions().canEdit) {
@@ -221,7 +221,7 @@ export class DetailedTask implements OnInit {
   }
 
   onDelete() {
-    const userId = Number(localStorage.getItem('userId'));
+    const userId = Number(sessionStorage.getItem('userId'));
     const currentTask = this.task();
 
     if (!currentTask || !Number.isInteger(userId) || userId <= 0 || !this.permissions().canDelete) {
@@ -253,4 +253,5 @@ export class DetailedTask implements OnInit {
     this.router.navigate(['/dashboard']);
   }
 }
+
 

@@ -55,7 +55,7 @@ export class Dashboard implements OnInit {
   private router = inject(Router);
   private http = inject(HttpClient);
 
-  private userId = localStorage.getItem('userId');
+  private userId = sessionStorage.getItem('userId');
 
   projects = signal<ProjectCardData[]>([]);
   selectedProjectId = signal<number | null>(null);
@@ -222,3 +222,4 @@ export class Dashboard implements OnInit {
     console.log('Task wird bewegt:', event.source.data);
   }
 }
+

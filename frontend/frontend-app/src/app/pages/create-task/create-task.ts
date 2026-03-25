@@ -73,7 +73,7 @@ export class CreateTask implements OnInit {
     const day = String(today.getDate()).padStart(2, '0');
     this.minDate = `${year}-${month}-${day}`;
 
-    const userId = localStorage.getItem('userId');
+    const userId = sessionStorage.getItem('userId');
     if (!userId) {
       alert('Bitte zuerst einloggen.');
       return;
@@ -109,7 +109,7 @@ export class CreateTask implements OnInit {
   }
 
   onSubmit(): void {
-    const userId = localStorage.getItem('userId');
+    const userId = sessionStorage.getItem('userId');
 
     if (!userId) {
       alert('Bitte zuerst einloggen.');
@@ -170,4 +170,5 @@ export class CreateTask implements OnInit {
     });
   }
 }
+
 

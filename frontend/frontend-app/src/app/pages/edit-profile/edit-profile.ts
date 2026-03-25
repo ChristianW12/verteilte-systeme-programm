@@ -21,7 +21,7 @@ export class EditProfile implements OnInit {
   passwortBestaetigen = signal('');
   aktuellesPassword = signal('');
 
-  private userId = signal(localStorage.getItem('userId') || '');
+  private userId = signal(sessionStorage.getItem('userId') || '');
   private emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   ngOnInit() {
@@ -144,9 +144,9 @@ export class EditProfile implements OnInit {
       .subscribe({
         next: (res: any) => {
           alert('Profil erfolgreich gelöscht. Du wirst abgemeldet.');
-          localStorage.removeItem('isLoggedIn');
-          localStorage.removeItem('userId');
-          localStorage.removeItem('userEmail');
+          sessionStorage.removeItem('isLoggedIn');
+          sessionStorage.removeItem('userId');
+          sessionStorage.removeItem('userEmail');
           setTimeout(() => {
             this.router.navigate(['/login']);
           }, 1000);
@@ -159,3 +159,4 @@ export class EditProfile implements OnInit {
   }
 
 }
+
