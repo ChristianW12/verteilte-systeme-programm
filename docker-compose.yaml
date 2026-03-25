@@ -113,3 +113,17 @@ services:
       - backend1
       - backend2
       - backend3
+  websockets:
+    build: ./websockets
+    expose:
+      - "4000"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_CHANNEL: realtime.events
+    depends_on:
+      redis:
+        condition: service_started
+    volumes:
+      - ./websockets:/usr/src/app
+      - /usr/src/app/node_modules
