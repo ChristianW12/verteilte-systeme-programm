@@ -1,15 +1,19 @@
 const { createClient } = require('redis');
 
-let publisher = null;
+let client = null;
 
-async function initPublisher() {
-  publisher = createClient({ url: 'redis://' + (process.env.REDIS_HOST || 'redis') + ':6379' });
-  await publisher.connect();
-  console.log('[realtime] Publisher connected to Redis');
+async function getClient() {
+  if (!client) {
+    client = createClient({ url: 'redis://' + (process.env.REDIS_HOST || 'redis') + ':6379' });
+    client.on('error', (err) => console.error('[Redis] Client Error', err));
+    await client.connect();
+    console.log('[Redis] Connected');
+  }
+  return client;
 }
 
 async function publishEvent(eventType, payload) {
-  if (!publisher) await initPublisher();
+  const redis = await getClient();
   
   const event = {
     type: eventType,
@@ -17,8 +21,8 @@ async function publishEvent(eventType, payload) {
     timestamp: new Date().toISOString()
   };
   
-  await publisher.publish('realtime.events', JSON.stringify(event));
+  await redis.publish('realtime.events', JSON.stringify(event));
   console.log('[realtime] Event published:', eventType);
 }
 
-module.exports = { initPublisher, publishEvent };
+module.exports = { getClient, publishEvent };

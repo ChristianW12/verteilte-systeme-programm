@@ -1,17 +1,35 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, signal, inject, PLATFORM_ID } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+
+export type RealtimeEvent = {
+  type: string;
+  payload: any;
+  timestamp: string;
+};
 
 @Injectable({
   providedIn: 'root'
 })
 export class RealtimeService {
+  private platformId = inject(PLATFORM_ID);
+  
   refreshRequired = signal(false);
+  lastEvent = signal<RealtimeEvent | null>(null);
+  
   private socket: WebSocket | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
 
   connect() {
+    // WICHTIG: WebSocket nur im Browser initialisieren!
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+
     try {
-      this.socket = new WebSocket('ws://localhost:8080/ws');
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = window.location.host;
+      this.socket = new WebSocket(`${protocol}//${host}/ws`);
 
       this.socket.onopen = () => {
         console.log('✅ WebSocket verbunden');
@@ -22,8 +40,10 @@ export class RealtimeService {
         const message = JSON.parse(event.data);
         console.log('[realtime]', message.type, message.payload);
 
-        // Tasks oder Projekte geändert → Dashboard aktualisieren
-        if (message.type.includes('task.') || message.type.includes('project.')) {
+        this.lastEvent.set(message);
+
+        const refreshTypes = ['task.created', 'task.deleted', 'task.updated', 'task.statusUpdated', 'project.created', 'project.updated'];
+        if (refreshTypes.includes(message.type)) {
           this.refreshRequired.set(true);
         }
       };
@@ -45,7 +65,6 @@ export class RealtimeService {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-      console.log(`Versuche Reconnect in ${delay}ms...`);
       setTimeout(() => this.connect(), delay);
     }
   }

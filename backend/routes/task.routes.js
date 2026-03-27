@@ -3,10 +3,98 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
-const { publishEvent } = require("../realtime.publisher");
+const { getClient, publishEvent } = require("../realtime.publisher");
 
 const allowedStatus = ["To Do", "In Progress", "Done", "Blocked"];
 const allowedPriority = ["Low", "Medium", "High"];
+
+const LOCK_TTL = 120;
+
+// --- Lock Endpoints ---
+
+router.post("/lock/acquire", async (req, res) => {
+  const { task_id, user_id, user_email } = req.body;
+  const taskId = Number(task_id);
+  const userId = Number(user_id);
+
+  if (!taskId || !userId || !user_email) {
+    return res.status(400).json({ message: "Fehlende Parameter für Lock" });
+  }
+
+  try {
+    const redis = await getClient();
+    const lockKey = `lock:task:${taskId}`;
+    const lockData = JSON.stringify({ userId, userEmail: user_email, at: Date.now() });
+    const success = await redis.set(lockKey, lockData, { NX: true, EX: LOCK_TTL });
+
+    if (success) {
+      await publishEvent("task.locked", { taskId, userEmail: user_email, userId });
+      return res.status(200).json({ message: "Lock erfolgreich erworben" });
+    } else {
+      const currentLockRaw = await redis.get(lockKey);
+      const currentLock = currentLockRaw ? JSON.parse(currentLockRaw) : null;
+      
+      // Falls der gleiche User den Lock bereits hat, als Erfolg werten (Renew)
+      if (currentLock && Number(currentLock.userId) === userId) {
+        await redis.expire(lockKey, LOCK_TTL);
+        return res.status(200).json({ message: "Lock erneuert" });
+      }
+
+      return res.status(423).json({ 
+        message: "Task wird bereits bearbeitet", 
+        lockedByEmail: currentLock?.userEmail || "Unbekannt"
+      });
+    }
+  } catch (error) {
+    console.error("Lock Acquire Fehler:", error);
+    res.status(500).json({ message: "Interner Serverfehler beim Locking" });
+  }
+});
+
+router.post("/lock/heartbeat", async (req, res) => {
+  const { task_id, user_id } = req.body;
+  const taskId = Number(task_id);
+  const userId = Number(user_id);
+
+  try {
+    const redis = await getClient();
+    const lockKey = `lock:task:${taskId}`;
+    const currentLockRaw = await redis.get(lockKey);
+
+    if (!currentLockRaw) return res.status(404).json({ message: "Kein aktiver Lock" });
+
+    const currentLock = JSON.parse(currentLockRaw);
+    if (Number(currentLock.userId) !== userId) return res.status(403).json({ message: "Nicht Besitzer" });
+
+    await redis.expire(lockKey, LOCK_TTL);
+    res.status(200).json({ message: "OK" });
+  } catch (error) {
+    res.status(500).json({ message: "Fehler" });
+  }
+});
+
+router.post("/lock/release", async (req, res) => {
+  const { task_id, user_id } = req.body;
+  const taskId = Number(task_id);
+  const userId = Number(user_id);
+
+  try {
+    const redis = await getClient();
+    const lockKey = `lock:task:${taskId}`;
+    const currentLockRaw = await redis.get(lockKey);
+
+    if (currentLockRaw) {
+      const currentLock = JSON.parse(currentLockRaw);
+      if (Number(currentLock.userId) === userId) {
+        await redis.del(lockKey);
+        await publishEvent("task.unlocked", { taskId });
+      }
+    }
+    res.status(200).json({ message: "Freigegeben" });
+  } catch (error) {
+    res.status(500).json({ message: "Fehler" });
+  }
+});
 
 async function getTaskPermissionContext(taskId, userId) {
   const [taskRows] = await db.execute(
@@ -131,7 +219,6 @@ router.post("/create", async (req, res) => {
       return res.status(404).json({ message: "Benutzer nicht gefunden" });
     }
 
-    // Wenn assigned_to gesetzt ist, prüfe ob der Bearbeiter ein gültiges Projektmitglied ist
     if (assignedToId) {
       const [assigneeRows] = await db.execute(
         `SELECT pm.user_id
@@ -187,53 +274,29 @@ router.post("/create", async (req, res) => {
   }
 });
 
-// IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Task löschen darf
 router.post("/delete", async (req, res) => {
   const { task_id, user_id } = req.body;
-
   const taskId = Number(task_id);
   const userId = Number(user_id);
 
-  if (
-    !Number.isInteger(taskId) ||
-    taskId <= 0 ||
-    !Number.isInteger(userId) ||
-    userId <= 0
-  ) {
-    return res
-      .status(400)
-      .json({ message: "task_id und user_id muessen gueltige Zahlen sein" });
+  if (!Number.isInteger(taskId) || taskId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: "Ungueltige Parameter" });
   }
 
   try {
     const permissions = await getTaskPermissionContext(taskId, userId);
-
-    if (!permissions.task) {
-      return res.status(404).json({ message: "Task nicht gefunden" });
-    }
-
-    if (!permissions.canDelete) {
-      return res
-        .status(403)
-        .json({ message: "Keine Berechtigung zum Loeschen dieser Task" });
-    }
+    if (!permissions.task) return res.status(404).json({ message: "Nicht gefunden" });
+    if (!permissions.canDelete) return res.status(403).json({ message: "Keine Berechtigung" });
 
     await db.execute("DELETE FROM tasks WHERE task_id = ?", [taskId]);
-
-    await publishEvent("task.deleted", {
-      taskId,
-      projectId: permissions.task.project_id,
-    });
-
+    await publishEvent("task.deleted", { taskId, projectId: permissions.task.project_id });
     return res.status(200).json({ message: "Task erfolgreich geloescht" });
   } catch (error) {
-    console.error("Fehler beim Loeschen der Task:", error);
+    console.error("Fehler beim Loeschen:", error);
     return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
-// TODO: edit route for editing a task
-// IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Task bearbeiten darf
 router.post("/edit", async (req, res) => {
   const {
     task_id,
@@ -249,229 +312,82 @@ router.post("/edit", async (req, res) => {
   const taskId = Number(task_id);
   const userId = Number(user_id);
 
-  if (
-    !Number.isInteger(taskId) ||
-    taskId <= 0 ||
-    !Number.isInteger(userId) ||
-    userId <= 0
-  ) {
-    return res
-      .status(400)
-      .json({ message: "task_id und user_id muessen gueltige Zahlen sein" });
-  }
-
-  const cleanTitle = String(title || "").trim();
-  const cleanDescription =
-    description !== undefined ? String(description || "").trim() : null;
-  const nextStatus = status || "To Do";
-  const nextPriority = priority || "Medium";
-  const nextDeadline = deadline || null;
-
-  if (!cleanTitle) {
-    return res.status(400).json({ message: "Titel darf nicht leer sein" });
-  }
-
-  if (cleanTitle.length > 50) {
-    return res.status(400).json({
-      message: "Titel darf maximal 50 Zeichen lang sein",
-    });
-  }
-
-  if (cleanDescription && cleanDescription.length > 1000) {
-    return res.status(400).json({
-      message: "Beschreibung darf maximal 1000 Zeichen lang sein",
-    });
-  }
-
-  if (!allowedStatus.includes(nextStatus)) {
-    return res.status(400).json({ message: "Ungueltiger Status" });
-  }
-
-  if (!allowedPriority.includes(nextPriority)) {
-    return res.status(400).json({ message: "Ungueltige Prioritaet" });
+  if (!Number.isInteger(taskId) || taskId <= 0 || !Number.isInteger(userId) || userId <= 0) {
+    return res.status(400).json({ message: "Ungueltige Parameter" });
   }
 
   try {
     const permissions = await getTaskPermissionContext(taskId, userId);
+    if (!permissions.task) return res.status(404).json({ message: "Task nicht gefunden" });
 
-    if (!permissions.task) {
-      return res.status(404).json({ message: "Task nicht gefunden" });
+    // Lock Check
+    const redis = await getClient();
+    const lockKey = `lock:task:${taskId}`;
+    const currentLockRaw = await redis.get(lockKey);
+    if (currentLockRaw) {
+      const currentLock = JSON.parse(currentLockRaw);
+      if (Number(currentLock.userId) !== userId) {
+        return res.status(423).json({ message: "Task ist gesperrt durch " + currentLock.userEmail });
+      }
     }
 
-    if (!permissions.canEdit) {
-      return res
-        .status(403)
-        .json({ message: "Keine Berechtigung zum Bearbeiten dieser Task" });
-    }
+    if (!permissions.canEdit) return res.status(403).json({ message: "Keine Berechtigung" });
+
+    const cleanTitle = String(title || "").trim();
+    if (!cleanTitle) return res.status(400).json({ message: "Titel erforderlich" });
 
     let nextAssignedTo = permissions.task.assigned_to;
-
     if (assigned_to !== undefined) {
-      if (!permissions.canEditAssignee) {
-        return res
-          .status(403)
-          .json({ message: "Nur Admin darf den Bearbeiter aendern" });
-      }
-
-      if (assigned_to === null || assigned_to === "") {
-        nextAssignedTo = null;
-      } else {
-        const parsedAssignedTo = Number(assigned_to);
-        if (!Number.isInteger(parsedAssignedTo) || parsedAssignedTo <= 0) {
-          return res.status(400).json({
-            message: "assigned_to muss eine gueltige Zahl oder leer sein",
-          });
-        }
-
-        const [assigneeRows] = await db.execute(
-          `SELECT pm.user_id
-           FROM project_members pm
-           WHERE pm.project_id = ?
-             AND pm.user_id = ?
-             AND pm.role IN ('Admin', 'Developer')`,
-          [permissions.task.project_id, parsedAssignedTo],
-        );
-
-        if (assigneeRows.length === 0) {
-          return res.status(400).json({
-            message: "Der Bearbeiter ist kein gueltiges Projektmitglied",
-          });
-        }
-
-        nextAssignedTo = parsedAssignedTo;
-      }
+      if (!permissions.canEditAssignee) return res.status(403).json({ message: "Nur Admin darf Bearbeiter aendern" });
+      nextAssignedTo = assigned_to === null || assigned_to === "" ? null : Number(assigned_to);
     }
 
     await db.execute(
-      `UPDATE tasks
-       SET title = ?,
-           description = ?,
-           status = ?,
-           priority = ?,
-           deadline = ?,
-           assigned_to = ?
-       WHERE task_id = ?`,
-      [
-        cleanTitle,
-        cleanDescription,
-        nextStatus,
-        nextPriority,
-        nextDeadline,
-        nextAssignedTo,
-        taskId,
-      ],
+      `UPDATE tasks SET title = ?, description = ?, status = ?, priority = ?, deadline = ?, assigned_to = ? WHERE task_id = ?`,
+      [cleanTitle, description || null, status || "To Do", priority || "Medium", deadline || null, nextAssignedTo, taskId]
     );
 
-    await publishEvent("task.updated", {
-      taskId,
-      projectId: permissions.task.project_id,
-      title: cleanTitle,
-    });
-
+    await publishEvent("task.updated", { taskId, projectId: permissions.task.project_id, title: cleanTitle });
     return res.status(200).json({ message: "Task erfolgreich bearbeitet" });
   } catch (error) {
-    console.error("Fehler beim Bearbeiten der Task:", error);
+    console.error("Fehler beim Bearbeiten:", error);
     return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
 router.post("/edit/updateStatus", async (req, res) => {
   const { task_id, user_id, status } = req.body;
-
   const taskId = Number(task_id);
   const userId = Number(user_id);
-  const nextStatus = status || "";
-
-  try {
-    if (
-      !Number.isInteger(taskId) ||
-      taskId <= 0 ||
-      !Number.isInteger(userId) ||
-      userId <= 0
-    ) {
-      return res
-        .status(400)
-        .json({ message: "task_id und user_id muessen gueltige Zahlen sein" });
-    }
-
-    const permissions = await getTaskPermissionContext(taskId, userId);
-
-    if (!permissions.task) {
-      return res.status(404).json({ message: "Task nicht gefunden" });
-    }
-
-    if (!permissions.canEdit) {
-      return res
-        .status(403)
-        .json({ message: "Keine Berechtigung zum Bearbeiten dieser Task" });
-    }
-
-    if (!allowedStatus.includes(nextStatus)) {
-      return res.status(400).json({ message: "Ungueltiger Status" });
-    }
-
-    await db.execute(
-      `UPDATE tasks
-       SET status = ?
-       WHERE task_id = ?`,
-      [nextStatus, taskId],
-    );
-
-    await publishEvent("task.statusUpdated", {
-      taskId,
-      projectId: permissions.task.project_id,
-      status: nextStatus,
-    });
-
-    return res
-      .status(200)
-      .json({ message: "Task-Status erfolgreich aktualisiert" });
-  } catch (error) {
-    console.error("Fehler beim Aktualisieren des Task-Status:", error);
-    return res.status(500).json({ message: "Interner Serverfehler" });
-  }
-});
-
-router.get("/:id/assignees", async (req, res) => {
-  const taskId = Number(req.params.id);
-  const userId = Number(req.query.user_id);
-
-  if (
-    !Number.isInteger(taskId) ||
-    taskId <= 0 ||
-    !Number.isInteger(userId) ||
-    userId <= 0
-  ) {
-    return res.status(400).json({ message: "Ungueltige taskId oder user_id" });
-  }
 
   try {
     const permissions = await getTaskPermissionContext(taskId, userId);
-
-    if (!permissions.task) {
-      return res.status(404).json({ message: "Task nicht gefunden" });
+    if (!permissions.task) return res.status(404).json({ message: "Nicht gefunden" });
+    
+    // Lock Check
+    const redis = await getClient();
+    const lockKey = `lock:task:${taskId}`;
+    const currentLockRaw = await redis.get(lockKey);
+    if (currentLockRaw) {
+      const currentLock = JSON.parse(currentLockRaw);
+      if (Number(currentLock.userId) !== userId) {
+        return res.status(423).json({ message: "Task ist gesperrt durch " + currentLock.userEmail });
+      }
     }
 
-    if (!permissions.canEditAssignee) {
-      return res
-        .status(403)
-        .json({ message: "Nur Admin darf Bearbeiter laden" });
-    }
+    if (!permissions.canEdit) return res.status(403).json({ message: "Keine Berechtigung" });
+    if (!allowedStatus.includes(status)) return res.status(400).json({ message: "Ungueltiger Status" });
 
-    const [assignees] = await db.execute(
-      `SELECT u.user_id, u.email
-       FROM project_members pm
-       JOIN users u ON u.user_id = pm.user_id
-       WHERE pm.project_id = ?
-         AND pm.role IN ('Admin', 'Developer')
-       ORDER BY u.email ASC`,
-      [permissions.task.project_id],
-    );
+    await db.execute(`UPDATE tasks SET status = ? WHERE task_id = ?`, [status, taskId]);
+    
+    // Lock freigeben
+    await redis.del(lockKey);
+    await publishEvent("task.unlocked", { taskId });
 
-    return res.status(200).json({ assignees });
+    await publishEvent("task.statusUpdated", { taskId, projectId: permissions.task.project_id, status });
+    return res.status(200).json({ message: "Status aktualisiert" });
   } catch (error) {
-    console.error("Fehler beim Laden der Bearbeiter:", error);
-    return res.status(500).json({ message: "Interner Serverfehler" });
+    return res.status(500).json({ message: "Serverfehler" });
   }
 });
 
@@ -485,17 +401,11 @@ router.get("/:id", async (req, res) => {
 
   try {
     const [rows] = await db.execute(
-      `SELECT t.task_id, t.project_id, t.title, t.description, t.status, t.priority, t.deadline, t.assigned_to,
-              assignee.email AS assigned_to_email
-       FROM tasks t
-       LEFT JOIN users assignee ON assignee.user_id = t.assigned_to
-       WHERE t.task_id = ?`,
+      `SELECT t.*, assignee.email AS assigned_to_email FROM tasks t LEFT JOIN users assignee ON assignee.user_id = t.assigned_to WHERE t.task_id = ?`,
       [taskId],
     );
 
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "Task nicht gefunden" });
-    }
+    if (rows.length === 0) return res.status(404).json({ message: "Nicht gefunden" });
 
     const task = rows[0];
     const normalized = {
@@ -509,84 +419,58 @@ router.get("/:id", async (req, res) => {
       assigned_to_id: task.assigned_to || null,
     };
 
-    let permissions = {
-      canEdit: false,
-      canDelete: false,
-      canEditAssignee: false,
-    };
-
-    if (Number.isInteger(userId) && userId > 0) {
-      const permissionContext = await getTaskPermissionContext(taskId, userId);
-      permissions = {
-        canEdit: permissionContext.canEdit,
-        canDelete: permissionContext.canDelete,
-        canEditAssignee: permissionContext.canEditAssignee,
-      };
+    let permissions = { canEdit: false, canDelete: false, canEditAssignee: false };
+    if (userId > 0) {
+      const pCtx = await getTaskPermissionContext(taskId, userId);
+      permissions = { canEdit: pCtx.canEdit, canDelete: pCtx.canDelete, canEditAssignee: pCtx.canEditAssignee };
     }
 
     return res.status(200).json({ task: normalized, permissions });
   } catch (error) {
-    console.error("Fehler beim Laden der Task:", error);
-    return res.status(500).json({ message: "Interner Serverfehler" });
+    return res.status(500).json({ message: "Serverfehler" });
   }
 });
 
 router.get("/project/:projectId", async (req, res) => {
   const projectId = Number(req.params.projectId);
-
-  if (!Number.isInteger(projectId) || projectId <= 0) {
-    return res.status(400).json({ message: "Ungueltige projectId" });
-  }
-
   try {
     const [tasks] = await db.execute(
-      `SELECT t.task_id,
-              t.project_id,
-              t.title,
-              t.status,
-              t.deadline,
-              t.assigned_to AS assigned_to_id,
-              assignee.email AS assigned_to,
-              t.created_by
-       FROM tasks t
-       LEFT JOIN users assignee ON assignee.user_id = t.assigned_to
-       WHERE t.project_id = ?
-       ORDER BY t.created_at DESC`,
+      `SELECT t.*, assignee.email AS assigned_to FROM tasks t LEFT JOIN users assignee ON assignee.user_id = t.assigned_to WHERE t.project_id = ? ORDER BY t.created_at DESC`,
       [projectId],
     );
-
     return res.status(200).json({ tasks });
   } catch (error) {
-    console.error("Fehler beim Laden der Tasks:", error);
-    return res.status(500).json({ message: "Interner Serverfehler" });
+    return res.status(500).json({ message: "Serverfehler" });
   }
 });
 
 router.post("/get", async (req, res) => {
   const { user_id } = req.body;
-  const userId = Number(user_id);
-
-  if (!Number.isInteger(userId) || userId <= 0) {
-    return res
-      .status(400)
-      .json({ message: "user_id muss eine gueltige Zahl sein" });
-  }
-
   try {
     const [projects] = await db.execute(
-      `SELECT p.project_id, p.name
-       FROM projects p
-       JOIN project_members pm ON p.project_id = pm.project_id
-       WHERE pm.user_id = ?
-         AND LOWER(pm.role) IN ('admin', 'developer')
-       ORDER BY p.name ASC`,
-      [userId],
+      `SELECT p.* FROM projects p JOIN project_members pm ON p.project_id = pm.project_id WHERE pm.user_id = ? AND pm.role IN ('Admin', 'Developer') ORDER BY p.name ASC`,
+      [Number(user_id)],
     );
-
     return res.json({ projects });
   } catch (error) {
-    console.error("Fehler beim Laden der Projekte:", error);
-    return res.status(500).json({ message: "Interner Serverfehler" });
+    return res.status(500).json({ message: "Serverfehler" });
+  }
+});
+
+router.get("/:id/assignees", async (req, res) => {
+  const taskId = Number(req.params.id);
+  const userId = Number(req.query.user_id);
+  try {
+    const pCtx = await getTaskPermissionContext(taskId, userId);
+    if (!pCtx.task || !pCtx.canEditAssignee) return res.status(403).json({ message: "Keine Berechtigung" });
+
+    const [assignees] = await db.execute(
+      `SELECT u.user_id, u.email FROM project_members pm JOIN users u ON u.user_id = pm.user_id WHERE pm.project_id = ? AND pm.role IN ('Admin', 'Developer') ORDER BY u.email ASC`,
+      [pCtx.task.project_id],
+    );
+    return res.status(200).json({ assignees });
+  } catch (error) {
+    return res.status(500).json({ message: "Serverfehler" });
   }
 });
 

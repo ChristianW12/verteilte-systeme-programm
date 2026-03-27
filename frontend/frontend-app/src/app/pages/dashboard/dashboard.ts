@@ -59,11 +59,14 @@ export class Dashboard implements OnInit {
   private realtime = inject(RealtimeService);
 
   private userId = getSessionStorage()?.getItem('userId');
+  private userEmail = getSessionStorage()?.getItem('userEmail');
 
   projects = signal<ProjectCardData[]>([]);
   selectedProjectId = signal<number | null>(null);
   selectedProjectName = signal<string>('Kein Projekt ausgewaehlt');
   tasks = signal<TaskCardData[]>([]);
+  
+  taskLocks = signal<Map<number, string>>(new Map());
 
   selectedProject = computed(() => this.projects().find((project) => project.project_id === this.selectedProjectId()) ?? null);
 
@@ -77,15 +80,27 @@ export class Dashboard implements OnInit {
   private userIdResponse = signal<number | null>(null);
 
   constructor() {
-    // Beobachte das refreshRequired Signal vom RealtimeService
     effect(() => {
+      const event = this.realtime.lastEvent();
+      if (!event) return;
+
+      if (event.type === 'task.locked') {
+        this.taskLocks.update(locks => {
+          const newLocks = new Map(locks);
+          newLocks.set(event.payload.taskId, event.payload.userEmail);
+          return newLocks;
+        });
+      } else if (event.type === 'task.unlocked') {
+        this.taskLocks.update(locks => {
+          const newLocks = new Map(locks);
+          newLocks.delete(event.payload.taskId);
+          return newLocks;
+        });
+      }
+
       if (this.realtime.refreshRequired()) {
-        console.log('🔄 [Dashboard] Neuer Event vom Server - lade Tasks neu');
         const projectId = this.selectedProjectId();
-        if (projectId) {
-          this.loadTasksForProject(projectId);
-        }
-        // Signal zurücksetzen, damit der nächste Event wieder triggert
+        if (projectId) this.loadTasksForProject(projectId);
         this.realtime.refreshRequired.set(false);
       }
     }, { allowSignalWrites: true });
@@ -97,18 +112,10 @@ export class Dashboard implements OnInit {
 
   private getFilteredTasks(): TaskCardData[] {
     const allTasks = this.tasks();
-    if (!this.showOnlyMyTasks() || !this.canShowMyTasksForSelectedProject()) {
-      return allTasks;
-    }
-
+    if (!this.showOnlyMyTasks() || !this.canShowMyTasksForSelectedProject()) return allTasks;
     const currentUserId = Number(this.userId);
-    if (!Number.isInteger(currentUserId) || currentUserId <= 0) {
-      return allTasks;
-    }
-
     return allTasks.filter((task) => task.assigned_to_id === currentUserId);
   }
-
 
   ngOnInit(): void {
     if (!this.userId) {
@@ -116,7 +123,6 @@ export class Dashboard implements OnInit {
       return;
     }
 
-    // Holt die Daten für die Projekte bei denen der eingeloggte User beteiligt ist
     this.http.get<GetProjectsResponse>(`/api/project/get/${this.userId}`).subscribe({
       next: (response) => {
         this.projects.set(
@@ -125,7 +131,6 @@ export class Dashboard implements OnInit {
             name: project.name,
             description: project.description,
             created_by: project.created_by,
-            // Hier wird noch zusätzlich die ID des Admins gespeichert, hilft uns später wenn wir ein Projekt bearbeiten Button einfügen möchte
             admin_id: project.admin_id,
             role: this.normalizeProjectRole(project.role),
             members: (project.members ?? []).map((member) => ({
@@ -137,26 +142,11 @@ export class Dashboard implements OnInit {
           })),
         );
         this.userIdResponse.set(response.userId);
-        console.log('Das sind die Admins der Projekte:', response.projects.map((p) => p.admin_id));
-
-        if (String(this.userIdResponse()) !== this.userId) {
-          console.warn('Die userId aus der Antwort stimmt nicht mit der gespeicherten userId überein.');
-          alert('Angefragte Projekte gehören nicht zum eingeloggten Benutzer!');
-          this.router.navigate(['/login']);
-        }
-
         const firstProject = this.projects()[0];
-        if (firstProject) {
-          this.selectProject(firstProject);
-        }
-
-        console.log('Projekte erfolgreich abgerufen:', this.projects());
+        if (firstProject) this.selectProject(firstProject);
       },
-      error: (err) => {
-        console.error('Fehler beim Abrufen der Projekte:', err);
-      },
+      error: (err) => console.error('Fehler beim Abrufen der Projekte:', err),
     });
-
   }
 
   canUserEditProject(project: ProjectCardData): boolean {
@@ -172,16 +162,12 @@ export class Dashboard implements OnInit {
     this.showOnlyMyTasks.update((current) => !current);
   }
 
-
   selectProject(project: ProjectCardData): void {
     this.selectedProjectId.set(project.project_id);
     this.selectedProjectName.set(project.name);
-
-    // Filter darf in Viewer-Projekten nicht aktiv bleiben.
     if (project.role !== 'Admin' && project.role !== 'Developer') {
       this.showOnlyMyTasks.set(false);
     }
-
     this.loadTasksForProject(project.project_id);
   }
 
@@ -206,38 +192,72 @@ export class Dashboard implements OnInit {
     });
   }
 
-  drop(event: CdkDragDrop<string>): void {
-    if (event.previousContainer === event.container) {
-      // Innerhalb der gleichen Liste verschoben (Reordering) - hier optional implementierbar
+  dragStarted(event: CdkDragStart): void {
+    const task = event.source.data as TaskCardData;
+    
+    // Verhindern, dass Dragger gestartet wird, wenn bereits gelockt
+    if (this.taskLocks().has(task.task_id)) {
+      event.source._dragRef.reset(); 
+      alert(`Diese Task wird gerade von ${this.taskLocks().get(task.task_id)} bearbeitet.`);
       return;
     }
 
+    // Lock beim Backend anfragen
+    this.http.post('/api/tasks/lock/acquire', {
+      task_id: task.task_id,
+      user_id: Number(this.userId),
+      user_email: this.userEmail
+    }).subscribe({
+      error: (err) => {
+        if (err.status === 423) {
+          event.source._dragRef.reset();
+          alert(err.error?.message || 'Task ist gesperrt.');
+        }
+      }
+    });
+  }
+
+  drop(event: CdkDragDrop<string>): void {
     const task = event.item.data as TaskCardData;
+    const release = () => {
+      this.http.post('/api/tasks/lock/release', {
+        task_id: task.task_id,
+        user_id: Number(userId)
+      }).subscribe();
+    };
+
+    const userId = Number(this.userId);
+
+    // Wenn am gleichen Ort abgelegt -> Lock sofort freigeben
+    if (event.previousContainer === event.container) {
+      this.http.post('/api/tasks/lock/release', {
+        task_id: task.task_id,
+        user_id: userId
+      }).subscribe();
+      return;
+    }
+
     const newStatus = event.container.data as 'To Do' | 'In Progress' | 'Done' | 'Blocked';
 
-    // Optimistisches Update im Frontend (damit es sofort "schnappt")
+    // Optimistisches Update
     this.tasks.update((tasks) =>
       tasks.map((t) => (t.task_id === task.task_id ? { ...t, status: newStatus } : t)),
     );
 
-    // Backend Update
     this.http.post('/api/tasks/edit/updateStatus', {
       task_id: task.task_id,
-      user_id: Number(this.userId),
+      user_id: userId,
       status: newStatus,
     }).subscribe({
+      // Das Backend gibt den Lock nun automatisch nach updateStatus frei
       error: (err) => {
         console.error('Fehler beim Verschieben des Tasks:', err);
-        // Rollback bei Fehler
         this.tasks.update((tasks) =>
           tasks.map((t) => (t.task_id === task.task_id ? { ...t, status: task.status } : t)),
         );
+        // Falls updateStatus fehlschlägt, manuell freigeben
+        this.http.post('/api/tasks/lock/release', { task_id: task.task_id, user_id: userId }).subscribe();
       },
     });
   }
-
-  dragStarted(event: CdkDragStart): void {
-    console.log('Task wird bewegt:', event.source.data);
-  }
 }
-

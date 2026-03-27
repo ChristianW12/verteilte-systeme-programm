@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { getSessionStorage } from '../../utils/storage';
@@ -43,7 +43,7 @@ type EditForm = {
   templateUrl: './detailed-task.html',
   styleUrl: './detailed-task.css',
 })
-export class DetailedTask implements OnInit {
+export class DetailedTask implements OnInit, OnDestroy {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
@@ -52,6 +52,9 @@ export class DetailedTask implements OnInit {
   loading = signal(true);
   error = signal<string | null>(null);
   permissions = signal<TaskPermissions>({ canEdit: false, canDelete: false, canEditAssignee: false });
+
+  lockStatus = signal<{ locked: boolean; userEmail?: string } | null>(null);
+  private heartbeatInterval: any;
 
   isEditMode = signal(false);
   saving = signal(false);
@@ -66,58 +69,113 @@ export class DetailedTask implements OnInit {
   });
 
   ngOnInit(): void {
-    console.log('Hier wird ngOnInit aufgerufen');
-
     this.route.paramMap.subscribe((params) => {
-      const routeTaskId = Number(params.get('id'));
-      const stateTaskId = typeof window !== 'undefined'
-        ? Number((window.history.state as any)?.taskId)
-        : NaN;
-      const taskId = Number.isInteger(routeTaskId) && routeTaskId > 0 ? routeTaskId : stateTaskId;
-
-      if (!taskId || !Number.isInteger(taskId) || taskId <= 0) {
+      const taskId = Number(params.get('id'));
+      if (!taskId || taskId <= 0) {
         this.error.set('Ungültige Task-ID');
-        this.task.set(null);
         this.loading.set(false);
         return;
       }
-
       this.loading.set(true);
-      this.error.set(null);
       this.loadTask(taskId);
     });
   }
 
+  ngOnDestroy(): void {
+    this.releaseLock();
+    if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+  }
+
   loadTask(id: number) {
     const userId = getSessionStorage()?.getItem('userId');
-    const userIdParam = userId ? `?user_id=${Number(userId)}` : '';
+    const userEmail = getSessionStorage()?.getItem('userEmail');
+    
+    let queryParams = `?user_id=${Number(userId)}`;
+    if (userEmail) queryParams += `&user_email=${encodeURIComponent(userEmail)}`;
 
     this.http
-      .get<{ task?: TaskDetail; permissions?: TaskPermissions }>(`/api/tasks/${id}${userIdParam}`)
+      .get<{ task?: TaskDetail; permissions?: TaskPermissions }>(`/api/tasks/${id}${queryParams}`)
       .subscribe({
         next: (res) => {
           if (!res.task) {
             this.error.set('Task nicht gefunden');
-            this.task.set(null);
-            this.permissions.set({ canEdit: false, canDelete: false, canEditAssignee: false });
           } else {
             this.task.set(res.task);
             this.permissions.set(res.permissions ?? { canEdit: false, canDelete: false, canEditAssignee: false });
+            this.acquireLock(id);
           }
           this.loading.set(false);
         },
         error: () => {
           this.error.set('Fehler beim Laden der Task');
-          this.task.set(null);
-          this.permissions.set({ canEdit: false, canDelete: false, canEditAssignee: false });
           this.loading.set(false);
         },
       });
   }
 
+  acquireLock(taskId: number) {
+    const userId = getSessionStorage()?.getItem('userId');
+    const userEmail = getSessionStorage()?.getItem('userEmail');
+
+    this.http.post('/api/tasks/lock/acquire', { 
+      task_id: taskId, 
+      user_id: Number(userId),
+      user_email: userEmail 
+    }).subscribe({
+      next: () => {
+        this.lockStatus.set({ locked: true, userEmail: 'dir (Ich)' });
+        this.startHeartbeat(taskId);
+      },
+      error: (err) => {
+        if (err.status === 423) {
+          const lockedBy = err.error.lockedByEmail;
+          // Falls die eigene E-Mail zurückkommt, haben wir den Lock bereits
+          if (lockedBy === userEmail) {
+            this.lockStatus.set({ locked: true, userEmail: 'dir (Ich)' });
+            this.startHeartbeat(taskId);
+          } else {
+            this.lockStatus.set({ locked: true, userEmail: lockedBy });
+            this.isEditMode.set(false);
+          }
+        }
+      }
+    });
+  }
+
+  private startHeartbeat(taskId: number) {
+    const userId = getSessionStorage()?.getItem('userId');
+    if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
+    
+    this.heartbeatInterval = setInterval(() => {
+      this.http.post('/api/tasks/lock/heartbeat', { 
+        task_id: taskId, 
+        user_id: Number(userId) 
+      }).subscribe({
+        error: () => {
+          clearInterval(this.heartbeatInterval);
+          this.lockStatus.set(null);
+        }
+      });
+    }, 30000);
+  }
+
+  private releaseLock() {
+    const currentTask = this.task();
+    const userId = getSessionStorage()?.getItem('userId');
+    if (currentTask && userId && this.lockStatus()?.userEmail === 'dir (Ich)') {
+      this.http.post('/api/tasks/lock/release', { 
+        task_id: currentTask.task_id, 
+        user_id: Number(userId) 
+      }).subscribe();
+    }
+  }
+
   onEdit() {
     const currentTask = this.task();
-    if (!currentTask || !this.permissions().canEdit) {
+    if (!currentTask || !this.permissions().canEdit) return;
+
+    if (this.lockStatus()?.locked && this.lockStatus()?.userEmail !== 'dir (Ich)') {
+      alert(`Diese Task wird gerade von ${this.lockStatus()?.userEmail} bearbeitet.`);
       return;
     }
 
@@ -129,41 +187,25 @@ export class DetailedTask implements OnInit {
       deadline: currentTask.deadline ? String(currentTask.deadline).slice(0, 10) : '',
       assigned_to: currentTask.assigned_to_id ? String(currentTask.assigned_to_id) : '',
     });
-
     this.isEditMode.set(true);
 
     if (this.permissions().canEditAssignee) {
       this.loadAssignees(currentTask.task_id);
-    } else {
-      this.assignees.set([]);
     }
   }
 
   loadAssignees(taskId: number) {
     const userId = Number(getSessionStorage()?.getItem('userId'));
-
-    if (!Number.isInteger(userId) || userId <= 0) {
-      this.assignees.set([]);
-      return;
-    }
-
     this.http
       .get<{ assignees?: Assignee[] }>(`/api/tasks/${taskId}/assignees?user_id=${userId}`)
       .subscribe({
-        next: (res) => {
-          this.assignees.set(res.assignees ?? []);
-        },
-        error: () => {
-          this.assignees.set([]);
-        },
+        next: (res) => this.assignees.set(res.assignees ?? []),
+        error: () => this.assignees.set([])
       });
   }
 
   updateEditForm<K extends keyof EditForm>(key: K, value: EditForm[K]) {
-    this.editForm.update((current) => ({
-      ...current,
-      [key]: value,
-    }));
+    this.editForm.update((current) => ({ ...current, [key]: value }));
   }
 
   saveEdit() {
@@ -171,27 +213,11 @@ export class DetailedTask implements OnInit {
     const userId = Number(getSessionStorage()?.getItem('userId'));
     const form = this.editForm();
 
-    if (!currentTask || !Number.isInteger(userId) || userId <= 0 || !this.permissions().canEdit) {
-      return;
-    }
-
-    if (!form.title.trim()) {
-      alert('Bitte einen Titel eingeben.');
-      return;
-    }
+    if (!currentTask || !userId || !this.permissions().canEdit) return;
+    if (!form.title.trim()) return alert('Bitte einen Titel eingeben.');
 
     this.saving.set(true);
-
-    const payload: {
-      task_id: number;
-      user_id: number;
-      title: string;
-      description: string;
-      status: EditForm['status'];
-      priority: EditForm['priority'];
-      deadline: string | null;
-      assigned_to?: number | null;
-    } = {
+    const payload = {
       task_id: currentTask.task_id,
       user_id: userId,
       title: form.title.trim(),
@@ -199,62 +225,38 @@ export class DetailedTask implements OnInit {
       status: form.status,
       priority: form.priority,
       deadline: form.deadline || null,
+      assigned_to: this.permissions().canEditAssignee ? (form.assigned_to ? Number(form.assigned_to) : null) : undefined
     };
-
-    if (this.permissions().canEditAssignee) {
-      payload.assigned_to = form.assigned_to ? Number(form.assigned_to) : null;
-    }
 
     this.http.post<{ message: string }>('/api/tasks/edit', payload).subscribe({
       next: (res) => {
-        alert(res.message || 'Task erfolgreich bearbeitet');
+        alert(res.message || 'Erfolgreich');
         this.isEditMode.set(false);
         this.loadTask(currentTask.task_id);
         this.saving.set(false);
       },
       error: (err) => {
-        alert(err.error?.message || 'Task konnte nicht bearbeitet werden');
+        alert(err.error?.message || 'Fehler');
         this.saving.set(false);
-      },
+      }
     });
   }
 
-  cancelEdit() {
-    this.isEditMode.set(false);
-  }
+  cancelEdit() { this.isEditMode.set(false); }
 
   onDelete() {
     const userId = Number(getSessionStorage()?.getItem('userId'));
     const currentTask = this.task();
+    if (!currentTask || !userId || !this.permissions().canDelete) return;
 
-    if (!currentTask || !Number.isInteger(userId) || userId <= 0 || !this.permissions().canDelete) {
-      return;
+    if (window.confirm('Task wirklich löschen?')) {
+      this.http.post('/api/tasks/delete', { task_id: currentTask.task_id, user_id: userId })
+        .subscribe({
+          next: () => this.goBack(),
+          error: (err) => alert(err.error?.message || 'Fehler')
+        });
     }
-
-    const confirmed = window.confirm('Task wirklich löschen?');
-    if (!confirmed) {
-      return;
-    }
-
-    this.http
-      .post<{ message: string }>('/api/tasks/delete', {
-        task_id: currentTask.task_id,
-        user_id: userId,
-      })
-      .subscribe({
-        next: (res) => {
-          alert(res.message || 'Task erfolgreich gelöscht');
-          this.goBack();
-        },
-        error: (err) => {
-          alert(err.error?.message || 'Task konnte nicht gelöscht werden');
-        },
-      });
   }
 
-  goBack() {
-    this.router.navigate(['/dashboard']);
-  }
+  goBack() { this.router.navigate(['/dashboard']); }
 }
-
-

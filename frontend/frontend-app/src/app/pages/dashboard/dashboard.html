@@ -57,7 +57,7 @@
         >
           @for (task of todoTasks(); track task.task_id) {
             <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
-              <app-task-card [task]="task"></app-task-card>
+              <app-task-card [task]="task" [lockedBy]="taskLocks().get(task.task_id) || null"></app-task-card>
             </div>
           } @empty {
             <p class="text-xs text-gray-400">Keine TODO-Tasks</p>
@@ -79,7 +79,7 @@
         >
           @for (task of inProgressTasks(); track task.task_id) {
             <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
-              <app-task-card [task]="task"></app-task-card>
+              <app-task-card [task]="task" [lockedBy]="taskLocks().get(task.task_id) || null"></app-task-card>
             </div>
           } @empty {
             <p class="text-xs text-gray-400">Keine Tasks in Bearbeitung</p>
@@ -101,7 +101,7 @@
         >
           @for (task of doneTasks(); track task.task_id) {
             <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
-              <app-task-card [task]="task"></app-task-card>
+              <app-task-card [task]="task" [lockedBy]="taskLocks().get(task.task_id) || null"></app-task-card>
             </div>
           } @empty {
             <p class="text-xs text-gray-400">Keine erledigten Tasks</p>
@@ -123,7 +123,7 @@
         >
           @for (task of blockedTasks(); track task.task_id) {
             <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
-              <app-task-card [task]="task"></app-task-card>
+              <app-task-card [task]="task" [lockedBy]="taskLocks().get(task.task_id) || null"></app-task-card>
             </div>
           } @empty {
             <p class="text-xs text-gray-400">Keine blockierten Tasks</p>
