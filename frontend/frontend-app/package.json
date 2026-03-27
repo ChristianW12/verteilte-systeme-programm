@@ -12,24 +12,23 @@
   "private": true,
   "packageManager": "npm@11.9.0",
   "dependencies": {
-    "@angular/cdk": "~21.2.3",
-    "@angular/common": "^21.2.0",
-    "@angular/compiler": "^21.2.0",
-    "@angular/core": "^21.2.0",
-    "@angular/forms": "^21.2.0",
-    "@angular/platform-browser": "^21.2.0",
-    "@angular/platform-server": "^21.2.0",
-    "@angular/router": "^21.2.0",
-    "@angular/ssr": "^21.2.0",
+    "@angular/cdk": "21.2.4",
+    "@angular/common": "21.2.6",
+    "@angular/compiler": "21.2.6",
+    "@angular/core": "21.2.6",
+    "@angular/forms": "21.2.6",
+    "@angular/platform-browser": "21.2.6",
+    "@angular/platform-server": "21.2.6",
+    "@angular/router": "21.2.6",
+    "@angular/ssr": "21.2.5",
     "express": "^5.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
   "devDependencies": {
-    "@angular/build": "^21.2.0",
-    "@angular/cdk": "^21.2.3",
-    "@angular/cli": "^21.2.0",
-    "@angular/compiler-cli": "^21.2.0",
+    "@angular/build": "21.2.5",
+    "@angular/cli": "21.2.5",
+    "@angular/compiler-cli": "21.2.6",
     "@tailwindcss/postcss": "^4.1.12",
     "@types/express": "^5.0.1",
     "@types/node": "^20.17.19",
@@ -39,5 +38,9 @@
     "tailwindcss": "^4.1.12",
     "typescript": "~5.9.2",
     "vitest": "^4.0.8"
+  },
+  "overrides": {
+    "picomatch": "4.0.4",
+    "undici": "7.24.6"
   }
 }
