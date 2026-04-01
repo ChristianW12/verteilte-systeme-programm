@@ -435,11 +435,24 @@ router.get("/project/:projectId", async (req, res) => {
   const projectId = Number(req.params.projectId);
   try {
     const [tasks] = await db.execute(
-      `SELECT t.*, assignee.email AS assigned_to FROM tasks t LEFT JOIN users assignee ON assignee.user_id = t.assigned_to WHERE t.project_id = ? ORDER BY t.created_at DESC`,
+      `SELECT t.*, assignee.email AS assigned_to_email 
+       FROM tasks t 
+       LEFT JOIN users assignee ON assignee.user_id = t.assigned_to 
+       WHERE t.project_id = ? 
+       ORDER BY t.created_at DESC`,
       [projectId],
     );
-    return res.status(200).json({ tasks });
+
+    // Mappe die Ergebnisse, um sicherzustellen, dass assigned_to_id vorhanden ist
+    const normalizedTasks = tasks.map(t => ({
+      ...t,
+      assigned_to_id: t.assigned_to,
+      assigned_to_email: t.assigned_to_email
+    }));
+
+    return res.status(200).json({ tasks: normalizedTasks });
   } catch (error) {
+    console.error("Fehler beim Abrufen der Projekttasks:", error);
     return res.status(500).json({ message: "Serverfehler" });
   }
 });
