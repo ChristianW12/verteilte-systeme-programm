@@ -2,5 +2,5 @@
   "thema": "Projekt- & Task-Management Anwendung",
   "kurs": "WWI2024V",
   "teilnehmer": "Alexander Hesse (7727665), Christian Wagner (3259084)",
-  "kurzbeschreibung": "Die Anwendung soll als Management-Tool für Projekte und deren Aufgaben dienen. Aufgaben können angelegt, gelöscht werden und befinden sich in einem Zustand (OFFEN, ERLEDIGT, IN ARBEIT, IN ABNAHME)."
+  "kurzbeschreibung": "Die Anwendung soll als Management-Tool für Projekte und deren Aufgaben dienen. Aufgaben können angelegt, gelöscht werden und befinden sich in einem Zustand ('To Do', 'In Progress', 'Done', 'Blocked' )."
 }

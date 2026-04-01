@@ -11,6 +11,7 @@ import { Project } from './pages/project/project';
 import { CreateProject } from './pages/create-project/create-project';
 import { EditProject } from './pages/edit-project/edit-project';
 import { EditProfile } from './pages/edit-profile/edit-profile';
+import { Statistics } from './pages/statistics/statistics';
 
 export const routes: Routes = [
   { path: '', component: Home },
@@ -22,6 +23,7 @@ export const routes: Routes = [
   { path: 'project', component: Project, canActivate: [authGuard] },
   {path: 'project/create', component: CreateProject, canActivate: [authGuard]},
   {path: 'project/edit/:projectId', component: EditProject, canActivate: [authGuard]},
+  { path: 'statistics', component: Statistics, canActivate: [authGuard] },
   { path: 'profile', component: Profile, canActivate: [authGuard] },
   {path: 'profile/edit', component: EditProfile, canActivate: [authGuard]},
   { path: '**', component: Home },

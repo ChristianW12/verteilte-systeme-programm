@@ -532,4 +532,61 @@ router.get("/:projectId/assignees", async (req, res) => {
   }
 });
 
+router.get("/:projectId/statistics", async (req, res) => {
+  const projectId = Number(req.params.projectId);
+
+  if (!Number.isInteger(projectId) || projectId <= 0) {
+    return res.status(400).json({ message: "Ungueltige projectId" });
+  }
+
+  try {
+    // Prüfe ob Projekt existiert und hole den Namen
+    const [projectRows] = await db.execute(
+      "SELECT name FROM projects WHERE project_id = ?",
+      [projectId]
+    );
+
+    if (projectRows.length === 0) {
+      return res.status(404).json({ message: "Projekt nicht gefunden" });
+    }
+
+    const projectName = projectRows[0].name;
+
+    // Hole aggregierte Task-Statistiken gruppiert nach Status
+    const [statisticsRows] = await db.execute(
+      `SELECT status, COUNT(*) as count
+       FROM tasks
+       WHERE project_id = ?
+       GROUP BY status`,
+      [projectId]
+    );
+
+    // Erstelle Statistik-Objekt mit allen Status-Werten (auch wenn sie 0 sind)
+    const statistics = {
+      'To Do': 0,
+      'In Progress': 0,
+      'Done': 0,
+      'Blocked': 0
+    };
+
+    let totalTasks = 0;
+
+    // Fülle die tatsächlichen Werte aus der Datenbank ein
+    for (const row of statisticsRows) {
+      statistics[row.status] = Number(row.count);
+      totalTasks += Number(row.count);
+    }
+
+    return res.status(200).json({
+      projectId,
+      projectName,
+      statistics,
+      totalTasks
+    });
+  } catch (error) {
+    console.error("Fehler beim Laden der Projekt-Statistiken:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
+  }
+});
+
 module.exports = router;

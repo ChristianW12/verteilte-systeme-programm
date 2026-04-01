@@ -1,0 +1,149 @@
+<div class="statistics-container p-6">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Projekt-Statistiken</h1>
+
+    <!-- Project Selector -->
+    <div class="mb-8">
+      <label for="project-select" class="block text-sm font-medium mb-2">Projekt auswählen:</label>
+      <select 
+        id="project-select"
+        [(ngModel)]="selectedProjectId"
+        class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      >
+        @for (project of projects(); track project.project_id) {
+          <option [value]="project.project_id">{{ project.name }}</option>
+        }
+      </select>
+    </div>
+
+    <!-- Error Message -->
+    @if (errorMessage()) {
+      <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md mb-6">
+        {{ errorMessage() }}
+      </div>
+    }
+
+    <!-- Loading State -->
+    @if (isLoading()) {
+      <div class="flex items-center justify-center h-96">
+        <div class="text-center">
+          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p class="text-gray-600">Lade Statistiken...</p>
+        </div>
+      </div>
+    }
+
+    <!-- Empty State: No Project Selected -->
+    @if (!selectedProjectId() && !isLoading() && !errorMessage()) {
+      <div class="bg-gray-50 border border-gray-200 rounded-md p-8 text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Kein Projekt ausgewählt</h3>
+        <p class="text-gray-600">Bitte wählen Sie ein Projekt aus, um dessen Statistiken zu sehen.</p>
+      </div>
+    }
+
+    <!-- Empty State: No Projects -->
+    @if (projects().length === 0 && !isLoading()) {
+      <div class="bg-gray-50 border border-gray-200 rounded-md p-8 text-center">
+        <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+        </svg>
+        <h3 class="text-lg font-medium text-gray-900 mb-2">Keine Projekte vorhanden</h3>
+        <p class="text-gray-600">Sie sind noch keinem Projekt zugewiesen. Erstellen Sie ein neues Projekt oder bitten Sie um Zugang.</p>
+      </div>
+    }
+
+    <!-- Chart and Statistics -->
+    @if (statistics() && !isLoading() && chartData()) {
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Chart -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <div class="chart-container" style="position: relative; height: 400px;">
+            <canvas baseChart
+              [data]="chartData()!"
+              [options]="chartOptions"
+              [type]="'pie'">
+            </canvas>
+          </div>
+        </div>
+
+        <!-- Statistics Summary -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+          <h2 class="text-xl font-semibold mb-4">{{ statistics()!.projectName }}</h2>
+          
+          <div class="space-y-4">
+            <div class="flex justify-between items-center pb-3 border-b">
+              <span class="font-medium">Gesamt Tasks:</span>
+              <span class="text-2xl font-bold text-gray-800">{{ statistics()!.totalTasks }}</span>
+            </div>
+
+            <div class="space-y-3 mt-4">
+              <div class="flex items-center justify-between p-3 bg-blue-50 rounded-md">
+                <div class="flex items-center">
+                  <div class="w-4 h-4 rounded-full bg-blue-500 mr-3"></div>
+                  <span class="font-medium">To Do</span>
+                </div>
+                <span class="text-lg font-semibold">{{ statistics()!.statistics['To Do'] }}</span>
+              </div>
+
+              <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-md">
+                <div class="flex items-center">
+                  <div class="w-4 h-4 rounded-full bg-yellow-500 mr-3"></div>
+                  <span class="font-medium">In Progress</span>
+                </div>
+                <span class="text-lg font-semibold">{{ statistics()!.statistics['In Progress'] }}</span>
+              </div>
+
+              <div class="flex items-center justify-between p-3 bg-green-50 rounded-md">
+                <div class="flex items-center">
+                  <div class="w-4 h-4 rounded-full bg-green-500 mr-3"></div>
+                  <span class="font-medium">Done</span>
+                </div>
+                <span class="text-lg font-semibold">{{ statistics()!.statistics['Done'] }}</span>
+              </div>
+
+              <div class="flex items-center justify-between p-3 bg-red-50 rounded-md">
+                <div class="flex items-center">
+                  <div class="w-4 h-4 rounded-full bg-red-500 mr-3"></div>
+                  <span class="font-medium">Blocked</span>
+                </div>
+                <span class="text-lg font-semibold">{{ statistics()!.statistics['Blocked'] }}</span>
+              </div>
+            </div>
+
+            <!-- Progress Indicator -->
+            @if (statistics()!.totalTasks > 0) {
+              <div class="mt-6 pt-4 border-t">
+                <div class="flex justify-between text-sm mb-2">
+                  <span class="font-medium">Fortschritt</span>
+                  <span class="font-semibold">
+                    {{ ((statistics()!.statistics['Done'] / statistics()!.totalTasks) * 100).toFixed(1) }}%
+                  </span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                  <div 
+                    class="bg-green-500 h-2.5 rounded-full transition-all duration-300" 
+                    [style.width.%]="(statistics()!.statistics['Done'] / statistics()!.totalTasks) * 100">
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty State: No Tasks -->
+      @if (statistics()!.totalTasks === 0) {
+        <div class="bg-gray-50 border border-gray-200 rounded-md p-8 text-center mt-6">
+          <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+          </svg>
+          <h3 class="text-lg font-medium text-gray-900 mb-2">Keine Tasks im Projekt</h3>
+          <p class="text-gray-600">Dieses Projekt enthält noch keine Tasks. Erstellen Sie Tasks, um Statistiken zu sehen.</p>
+        </div>
+      }
+    }
+  </div>
+</div>
