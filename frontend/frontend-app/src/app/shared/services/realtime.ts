@@ -20,6 +20,7 @@ export class RealtimeService {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
 
+  // Nur im Browser initialisieren, nutzt wss: für HTTPS
   connect() {
     // WICHTIG: WebSocket nur im Browser initialisieren!
     if (!isPlatformBrowser(this.platformId)) {
@@ -36,6 +37,7 @@ export class RealtimeService {
         this.reconnectAttempts = 0;
       };
 
+      // Triggert refreshRequired Signal bei task/project-Events
       this.socket.onmessage = (event) => {
         const message = JSON.parse(event.data);
         console.log('[realtime]', message.type, message.payload);
@@ -61,6 +63,7 @@ export class RealtimeService {
     }
   }
 
+  // Exponentielle Backoff-Strategie: max 30s, 5 Versuche
   private attemptReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
