@@ -250,6 +250,7 @@ export class DetailedTask implements OnInit, OnDestroy {
 
   cancelEdit() { this.isEditMode.set(false); }
 
+  // Löscht Task nach Bestätigung
   onDelete() {
     const userId = Number(getSessionStorage()?.getItem('userId'));
     const currentTask = this.task();

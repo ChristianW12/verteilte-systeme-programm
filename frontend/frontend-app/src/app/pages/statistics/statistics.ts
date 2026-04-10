@@ -121,6 +121,7 @@ export class Statistics implements OnInit {
     this.loadProjects();
   }
 
+  // Ruft Projekte ab und wählt das erste aus
   loadProjects() {
     if (!this.userId) {
       this.errorMessage.set('Benutzer nicht authentifiziert');
@@ -143,6 +144,7 @@ export class Statistics implements OnInit {
       });
   }
 
+  // Lädt Task-Statistiken für ausgewähltes Projekt und aktualisiert Chart
   loadStatistics() {
     const projectId = this.selectedProjectId();
     if (!projectId) {
