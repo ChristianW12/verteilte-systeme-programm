@@ -32,6 +32,7 @@ wss.on('connection', (socket) => {
   });
 });
 
+// Versendet Nachricht an alle verbundenen WebSocket-Clients
 function broadcast(rawMessage) {
   for (const socket of clients) {
     if (socket.readyState === socket.OPEN) {
@@ -40,6 +41,7 @@ function broadcast(rawMessage) {
   }
 }
 
+// Abonniert Redis-Channel und versendet Events an alle WS-Clients
 async function startRedisBridge() {
   const subscriber = createClient({ url: 'redis://' + REDIS_HOST + ':' + REDIS_PORT });
 
