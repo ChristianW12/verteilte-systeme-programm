@@ -5,6 +5,7 @@ const router = express.Router();
 const db = require("../db");
 const { publishEvent } = require("../realtime.publisher");
 
+// Erstellt neues Projekt mit Mitgliedern (transaktional)
 router.post("/create", async (req, res) => {
   const { name, description, createdBy, members } = req.body;
 
@@ -134,7 +135,7 @@ router.post("/create", async (req, res) => {
   }
 });
 
-// IMPORTANT: userId des Frontend mitübergeben, damit backend überprüfen kann ob user diese Project löschen darf
+// Löscht Projekt (nur Owner/Ersteller)
 router.post("/delete", async (req, res) => {
   const { project_id, user_id } = req.body;
 
@@ -183,6 +184,7 @@ router.post("/delete", async (req, res) => {
   }
 });
 
+// Bearbeitet Projekt + Mitgliederverwaltung mit Diff-Berechnung (Transaktional)
 router.post("/edit", async (req, res) => {
   const { project_id, user_id, name, description, members } = req.body;
 
@@ -411,6 +413,7 @@ router.post("/edit", async (req, res) => {
   }
 });
 
+// Email-Suche für Mitgliederverwaltung (LIKE, max 8 Ergebnisse)
 router.get("/member-search", async (req, res) => {
   const query = String(req.query.query || "").trim();
 
@@ -440,6 +443,7 @@ router.get("/member-search", async (req, res) => {
   }
 });
 
+// Ruft alle Projekte eines Benutzers mit Mitgliederlisten ab
 router.get("/get/:userId", async (req, res) => {
   const userId = Number(req.params.userId);
 
@@ -507,6 +511,8 @@ router.get("/get/:userId", async (req, res) => {
   }
 });
 
+// Admin/Developer eines Projekts für Task-Zuweisung
+// Ruft Admin/Developer eines Projekts ab
 router.get("/:projectId/assignees", async (req, res) => {
   const projectId = Number(req.params.projectId);
 
@@ -532,6 +538,7 @@ router.get("/:projectId/assignees", async (req, res) => {
   }
 });
 
+// Task-Zähler nach Status (Statistiken für Projekt)
 router.get("/:projectId/statistics", async (req, res) => {
   const projectId = Number(req.params.projectId);
 
