@@ -13,6 +13,7 @@ import { EditProject } from './pages/edit-project/edit-project';
 import { EditProfile } from './pages/edit-profile/edit-profile';
 import { Statistics } from './pages/statistics/statistics';
 
+// Router-Konfiguration mit authGuard für geschützte Routen
 export const routes: Routes = [
   { path: '', component: Home },
   { path: 'dashboard', component: Dashboard, canActivate: [authGuard] },
