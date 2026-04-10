@@ -26,6 +26,7 @@ export class Signup {
   private http = inject(HttpClient);
   private router = inject(Router);
 
+  // Registriert neuen Benutzer
   onSignup() {
     if (!this.correctInput()) {
       return;
@@ -57,6 +58,7 @@ export class Signup {
     });
   }
 
+  // Validiert Username, Email, Passwort-Anforderungen
   correctInput(): boolean {
 
     let fehlermeldung = '';

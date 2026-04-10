@@ -34,6 +34,7 @@ export class Profile {
     this.loadProfile();
   }
 
+  // Ruft Benutzerprofildaten ab
   loadProfile() {
 
     const userId = getSessionStorage()?.getItem('userId');
@@ -53,6 +54,7 @@ export class Profile {
       });
   }
 
+  // Löscht Session-Daten und leitet zum Login um
   logout() {
     const storage = getSessionStorage();
     storage?.removeItem('isLoggedIn');

@@ -27,6 +27,7 @@ export class Login {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
+  // Authentifiziert Benutzer mit E-Mail/Passwort und speichert Session
   onLogin() {
     const loginData = {
       email: this.email,

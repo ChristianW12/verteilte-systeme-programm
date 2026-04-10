@@ -169,6 +169,7 @@ export class EditProject implements OnInit, OnDestroy {
     this.newMemberFields.update((fields) => fields.filter((_, i) => i !== index));
   }
 
+  // Sucht Benutzer mit Debounce bei E-Mail-Eingabe (neue Mitglieder)
   onMemberInput(index: number): void {
     const fields = this.newMemberFields();
     const field = fields[index];
@@ -292,6 +293,7 @@ export class EditProject implements OnInit, OnDestroy {
     );
   }
 
+  // Aktualisiert Projekt mit Mitgliedern-Diff (hinzufügen/entfernen/Rolle ändern)
   onSubmit(): void {
     if (!this.projectId || !this.userId) {
       alert('Projekt oder Benutzer ungueltig.');

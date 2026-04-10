@@ -93,6 +93,7 @@ export class CreateTask implements OnInit {
     });
   }
 
+  // Ruft Admin/Developer eines Projekts ab für Assignee-Dropdown
   loadAssigneesForProject(projectId: number): void {
     console.log('Laden der Bearbeiter des Projekts:', projectId);
     this.http.get<UsersResponse>(`/api/project/${projectId}/assignees`).subscribe({
@@ -112,6 +113,7 @@ export class CreateTask implements OnInit {
     this.selectedProjectId.set(newProjectId);
   }
 
+  // Erstellt neue Task und triggert Realtime-Refresh
   onSubmit(): void {
     const userId = getSessionStorage()?.getItem('userId');
 

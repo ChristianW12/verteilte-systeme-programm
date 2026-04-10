@@ -49,6 +49,7 @@ export class EditProfile implements OnInit {
 
   }
 
+  // Aktualisiert Username, Email, Passwort
   saveProfile() {
     if (!this.validateInput()) {
       return;
@@ -81,6 +82,7 @@ export class EditProfile implements OnInit {
       });
   }
 
+  // Validiert Username, Email, Passwort-Anforderungen
   validateInput(): boolean {
     let fehlermeldung = '';
 
