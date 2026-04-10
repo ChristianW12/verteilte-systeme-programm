@@ -10,8 +10,9 @@ const allowedPriority = ["Low", "Medium", "High"];
 
 const LOCK_TTL = 120;
 
-// --- Lock Endpoints ---
+// --- Lock Endpoints (Pessimistic Locking mit Redis) ---
 
+// Sperrt Task für exklusiven Zugriff, gibt 423 zurück wenn bereits gesperrt
 router.post("/lock/acquire", async (req, res) => {
   const { task_id, user_id, user_email } = req.body;
   const taskId = Number(task_id);
@@ -51,6 +52,7 @@ router.post("/lock/acquire", async (req, res) => {
   }
 });
 
+// Verlängert Lock-TTL
 router.post("/lock/heartbeat", async (req, res) => {
   const { task_id, user_id } = req.body;
   const taskId = Number(task_id);
@@ -73,6 +75,7 @@ router.post("/lock/heartbeat", async (req, res) => {
   }
 });
 
+// Gibt Lock frei
 router.post("/lock/release", async (req, res) => {
   const { task_id, user_id } = req.body;
   const taskId = Number(task_id);
@@ -96,6 +99,7 @@ router.post("/lock/release", async (req, res) => {
   }
 });
 
+// Prüft Berechtigungen (Admin oder zugewiesener Developer)
 async function getTaskPermissionContext(taskId, userId) {
   const [taskRows] = await db.execute(
     `SELECT task_id, project_id, assigned_to
@@ -132,6 +136,7 @@ async function getTaskPermissionContext(taskId, userId) {
   };
 }
 
+// Erstellt neue Task
 router.post("/create", async (req, res) => {
   const {
     project_id,
@@ -274,6 +279,7 @@ router.post("/create", async (req, res) => {
   }
 });
 
+// Löscht Task (nur Admin/Assignee)
 router.post("/delete", async (req, res) => {
   const { task_id, user_id } = req.body;
   const taskId = Number(task_id);
@@ -297,6 +303,7 @@ router.post("/delete", async (req, res) => {
   }
 });
 
+// Bearbeitet Task-Details (mit Lock-Check)
 router.post("/edit", async (req, res) => {
   const {
     task_id,
@@ -355,6 +362,7 @@ router.post("/edit", async (req, res) => {
   }
 });
 
+// Spezifischer Endpoint für Status-Update + Lock-Freigabe
 router.post("/edit/updateStatus", async (req, res) => {
   const { task_id, user_id, status } = req.body;
   const taskId = Number(task_id);
@@ -391,6 +399,7 @@ router.post("/edit/updateStatus", async (req, res) => {
   }
 });
 
+// Ruft Task-Details ab
 router.get("/:id", async (req, res) => {
   const taskId = Number(req.params.id);
   const userId = Number(req.query.user_id);
@@ -431,6 +440,7 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+// Ruft alle Tasks eines Projekts ab
 router.get("/project/:projectId", async (req, res) => {
   const projectId = Number(req.params.projectId);
   try {
@@ -470,6 +480,7 @@ router.post("/get", async (req, res) => {
   }
 });
 
+// Ruft alle möglichen Assignees für eine Task ab
 router.get("/:id/assignees", async (req, res) => {
   const taskId = Number(req.params.id);
   const userId = Number(req.query.user_id);
