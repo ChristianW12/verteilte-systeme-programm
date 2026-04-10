@@ -79,6 +79,7 @@ export class Dashboard implements OnInit {
 
   private userIdResponse = signal<number | null>(null);
 
+  // Verwaltet Lock-Events und Realtime-Refresh
   constructor() {
     effect(() => {
       const event = this.realtime.lastEvent();
@@ -110,6 +111,7 @@ export class Dashboard implements OnInit {
     return role === 'Admin' || role === 'Developer' || role === 'Viewer' ? role : 'Viewer';
   }
 
+  // Filtert Tasks nach "meine Tasks" oder alle
   private getFilteredTasks(): TaskCardData[] {
     const allTasks = this.tasks();
     if (!this.showOnlyMyTasks() || !this.canShowMyTasksForSelectedProject()) return allTasks;
@@ -192,6 +194,7 @@ export class Dashboard implements OnInit {
     });
   }
 
+  // Sperrt Task beim Start des Drag-and-Drop
   dragStarted(event: CdkDragStart): void {
     const task = event.source.data as TaskCardData;
     
@@ -217,6 +220,7 @@ export class Dashboard implements OnInit {
     });
   }
 
+  // Aktualisiert Status und gibt Lock frei (optimistisch mit Rollback)
   drop(event: CdkDragDrop<string>): void {
     const task = event.item.data as TaskCardData;
     const release = () => {

@@ -73,6 +73,7 @@ export class CreateProject {
     }
   }
 
+  // Sucht Benutzer mit Debounce bei E-Mail-Eingabe
   onMemberInput(index: number): void {
     const field = this.memberFields[index];
     if (!field) {
@@ -145,6 +146,7 @@ export class CreateProject {
     }
   }
 
+  // Erstellt Projekt mit Mitgliedern und navigiert zum Dashboard
   onSubmit(): void {
     const createdByRaw = getSessionStorage()?.getItem('userId');
     const createdBy = Number(createdByRaw);

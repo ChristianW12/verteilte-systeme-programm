@@ -86,6 +86,7 @@ export class DetailedTask implements OnInit, OnDestroy {
     if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
   }
 
+  // Lädt Task-Details und ruft Berechtigungen ab
   loadTask(id: number) {
     const userId = getSessionStorage()?.getItem('userId');
     const userEmail = getSessionStorage()?.getItem('userEmail');
@@ -113,6 +114,7 @@ export class DetailedTask implements OnInit, OnDestroy {
       });
   }
 
+  // Sperrt Task beim Öffnen, HTTP 423 wenn bereits gesperrt
   acquireLock(taskId: number) {
     const userId = getSessionStorage()?.getItem('userId');
     const userEmail = getSessionStorage()?.getItem('userEmail');
@@ -142,6 +144,7 @@ export class DetailedTask implements OnInit, OnDestroy {
     });
   }
 
+  // Verlängert Lock-TTL alle 30 Sekunden, verhindert Lock-Timeout
   private startHeartbeat(taskId: number) {
     const userId = getSessionStorage()?.getItem('userId');
     if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
@@ -159,6 +162,7 @@ export class DetailedTask implements OnInit, OnDestroy {
     }, 30000);
   }
 
+  // Gibt Lock frei und entfernt Heartbeat
   private releaseLock() {
     const currentTask = this.task();
     const userId = getSessionStorage()?.getItem('userId');
@@ -194,6 +198,7 @@ export class DetailedTask implements OnInit, OnDestroy {
     }
   }
 
+  // Ruft mögliche Assignees für diese Task ab
   loadAssignees(taskId: number) {
     const userId = Number(getSessionStorage()?.getItem('userId'));
     this.http
@@ -208,6 +213,7 @@ export class DetailedTask implements OnInit, OnDestroy {
     this.editForm.update((current) => ({ ...current, [key]: value }));
   }
 
+  // Speichert Task-Änderungen (mit Lock-Release)
   saveEdit() {
     const currentTask = this.task();
     const userId = Number(getSessionStorage()?.getItem('userId'));
