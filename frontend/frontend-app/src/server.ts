@@ -1,3 +1,4 @@
+// Express Server für Angular SSR (Server-Side Rendering) mit Static Files + Request Handler
 import {
   AngularNodeAppEngine,
   createNodeRequestHandler,

@@ -1,3 +1,4 @@
+// SSR Render-Modi: task/:id + project/:projectId dynamisch, andere prerendern
 import { RenderMode, ServerRoute } from '@angular/ssr';
 
 export const serverRoutes: ServerRoute[] = [
