@@ -4,6 +4,7 @@ const express = require("express");
 const router = express.Router();
 const db = require("../db");
 
+// Login mit E-Mail + Passwort (plaintext - nicht sicher!)
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -45,6 +46,7 @@ router.post("/login", async (req, res) => {
   }
 });
 
+// Registriert neuen Benutzer
 router.post("/signup", async (req, res) => {
   const { username, email, password } = req.body;
 
@@ -78,6 +80,7 @@ router.post("/signup", async (req, res) => {
   }
 });
 
+// Ruft Profildaten ab
 router.post('/profile', async (req, res) => {
   const {userId} = req.body;
   
@@ -111,7 +114,7 @@ router.post('/profile', async (req, res) => {
   }
 });
 
-// Neuer Endpoint: Profil aktualisieren
+// Aktualisiert Profildaten (Username, Email, Passwort)
 router.post('/profile/update', async (req, res) => {
   const { userId, username, email, neuesPassword } = req.body;
 
@@ -144,7 +147,7 @@ router.post('/profile/update', async (req, res) => {
   }
 });
 
-// Neuer Endpoint: Profil löschen
+// Löscht Benutzerkonto
 router.post('/profile/delete', async (req, res) => {
   const { userId } = req.body;
 
