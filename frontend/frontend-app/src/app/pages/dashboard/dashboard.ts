@@ -125,6 +125,9 @@ export class Dashboard implements OnInit {
       return;
     }
 
+    // Aktive Locks beim Initialisieren laden
+    this.loadActiveLocks();
+
     this.http.get<GetProjectsResponse>(`/api/project/get/${this.userId}`).subscribe({
       next: (response) => {
         this.projects.set(
@@ -171,6 +174,19 @@ export class Dashboard implements OnInit {
       this.showOnlyMyTasks.set(false);
     }
     this.loadTasksForProject(project.project_id);
+  }
+
+  private loadActiveLocks(): void {
+    this.http.get<{ locks: { [taskId: string]: string } }>('/api/tasks/lock/all').subscribe({
+      next: (response) => {
+        const newLocks = new Map<number, string>();
+        Object.entries(response.locks).forEach(([taskId, userEmail]) => {
+          newLocks.set(Number(taskId), userEmail);
+        });
+        this.taskLocks.set(newLocks);
+      },
+      error: (err) => console.error('Fehler beim Laden der Locks:', err)
+    });
   }
 
   private loadTasksForProject(projectId: number): void {

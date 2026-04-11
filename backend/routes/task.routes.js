@@ -12,6 +12,29 @@ const LOCK_TTL = 120;
 
 // --- Lock Endpoints (Pessimistic Locking mit Redis) ---
 
+// Ruft alle aktuell aktiven Locks aus Redis ab
+router.get("/lock/all", async (req, res) => {
+  try {
+    const redis = await getClient();
+    const keys = await redis.keys("lock:task:*");
+    const locks = {};
+
+    for (const key of keys) {
+      const taskId = key.split(":").pop();
+      const lockDataRaw = await redis.get(key);
+      if (lockDataRaw) {
+        const lockData = JSON.parse(lockDataRaw);
+        locks[taskId] = lockData.userEmail;
+      }
+    }
+
+    res.status(200).json({ locks });
+  } catch (error) {
+    console.error("Fehler beim Abrufen aller Locks:", error);
+    res.status(500).json({ message: "Serverfehler beim Abrufen der Locks" });
+  }
+});
+
 // Sperrt Task für exklusiven Zugriff, gibt 423 zurück wenn bereits gesperrt
 router.post("/lock/acquire", async (req, res) => {
   const { task_id, user_id, user_email } = req.body;
