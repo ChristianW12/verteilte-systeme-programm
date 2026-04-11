@@ -55,6 +55,8 @@ export class DetailedTask implements OnInit, OnDestroy {
 
   lockStatus = signal<{ locked: boolean; userEmail?: string } | null>(null);
   private heartbeatInterval: any;
+  private readonly VIEW_TIMEOUT = 30000;
+  private viewTimer: any;
 
   isEditMode = signal(false);
   saving = signal(false);
@@ -83,6 +85,7 @@ export class DetailedTask implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.releaseLock();
+    this.clearViewTimer();
     if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
   }
 
@@ -127,6 +130,7 @@ export class DetailedTask implements OnInit, OnDestroy {
       next: () => {
         this.lockStatus.set({ locked: true, userEmail: 'dir (Ich)' });
         this.startHeartbeat(taskId);
+        this.startViewTimer();
       },
       error: (err) => {
         if (err.status === 423) {
@@ -135,9 +139,11 @@ export class DetailedTask implements OnInit, OnDestroy {
           if (lockedBy === userEmail) {
             this.lockStatus.set({ locked: true, userEmail: 'dir (Ich)' });
             this.startHeartbeat(taskId);
+            this.startViewTimer();
           } else {
             this.lockStatus.set({ locked: true, userEmail: lockedBy });
             this.isEditMode.set(false);
+            this.clearViewTimer();
           }
         }
       }
@@ -174,6 +180,23 @@ export class DetailedTask implements OnInit, OnDestroy {
     }
   }
 
+  private startViewTimer() {
+    this.clearViewTimer();
+    this.viewTimer = setTimeout(() => {
+      if (!this.isEditMode()) {
+        alert('Die 30-sekündige Lesezeit ist abgelaufen. Die Task wird für andere freigegeben.');
+        this.goBack();
+      }
+    }, this.VIEW_TIMEOUT);
+  }
+
+  private clearViewTimer() {
+    if (this.viewTimer) {
+      clearTimeout(this.viewTimer);
+      this.viewTimer = null;
+    }
+  }
+
   onEdit() {
     const currentTask = this.task();
     if (!currentTask || !this.permissions().canEdit) return;
@@ -192,6 +215,7 @@ export class DetailedTask implements OnInit, OnDestroy {
       assigned_to: currentTask.assigned_to_id ? String(currentTask.assigned_to_id) : '',
     });
     this.isEditMode.set(true);
+    this.clearViewTimer();
 
     if (this.permissions().canEditAssignee) {
       this.loadAssignees(currentTask.task_id);
@@ -248,7 +272,10 @@ export class DetailedTask implements OnInit, OnDestroy {
     });
   }
 
-  cancelEdit() { this.isEditMode.set(false); }
+  cancelEdit() { 
+    this.isEditMode.set(false); 
+    this.startViewTimer();
+  }
 
   // Löscht Task nach Bestätigung
   onDelete() {
