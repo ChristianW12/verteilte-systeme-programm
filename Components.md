@@ -32,7 +32,7 @@ flowchart TD
     Backend -- "Lock/Publish" --> Redis
 
     Redis -- "Subscribe" --> WS
-    WS -. "Broadcast Events" .-> Frontend
+    WS -. "Broadcast Events" .-> Nginx
 
     style Frontend fill:#f9f,stroke:#333,stroke-width:2px
     style Nginx fill:#bbf,stroke:#333,stroke-width:2px
