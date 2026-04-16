@@ -467,3 +467,24 @@ INSERT INTO tasks (project_id, title, description, status, priority, assigned_to
 (12, 'Lasttests durchführen', 'Simulation hoher Prozessdurchläufe in der Engine.','In Progress', 'High', 15, 1),
 (12, 'Prototyp entwickeln', 'Entwurf einer Low-Code Anwendung zur Prozesssteuerung.','To Do', 'High', 50, 4);
 
+-- ====================================================================
+-- TRIGGER: Projektmitglied-Löschung
+-- Wenn ein User aus einem Projekt gelöscht wird, werden alle Tasks
+-- wo er der Bearbeiter war auf NULL gesetzt
+-- ====================================================================
+
+DELIMITER $$
+
+DROP TRIGGER IF EXISTS trigger_delete_project_member$$
+
+CREATE TRIGGER trigger_delete_project_member
+AFTER DELETE ON project_members
+FOR EACH ROW
+BEGIN
+    UPDATE tasks
+    SET assigned_to = NULL
+    WHERE project_id = OLD.project_id
+    AND assigned_to = OLD.user_id;
+END$$
+
+DELIMITER ;
