@@ -134,6 +134,7 @@ export class EditProfile implements OnInit {
     }
   }
 
+  // Löscht das Profil nach Bestätigung, entfernt Session-Daten und leitet zum Login um
   deleteProfile() {
     const confirmed = confirm(
       'Bist du sicher, dass du dein Profil löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.'

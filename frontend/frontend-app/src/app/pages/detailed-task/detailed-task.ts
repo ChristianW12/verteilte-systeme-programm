@@ -93,7 +93,7 @@ export class DetailedTask implements OnInit, OnDestroy {
   loadTask(id: number) {
     const userId = getSessionStorage()?.getItem('userId');
     const userEmail = getSessionStorage()?.getItem('userEmail');
-    
+
     let queryParams = `?user_id=${Number(userId)}`;
     if (userEmail) queryParams += `&user_email=${encodeURIComponent(userEmail)}`;
 
@@ -122,10 +122,10 @@ export class DetailedTask implements OnInit, OnDestroy {
     const userId = getSessionStorage()?.getItem('userId');
     const userEmail = getSessionStorage()?.getItem('userEmail');
 
-    this.http.post('/api/tasks/lock/acquire', { 
-      task_id: taskId, 
+    this.http.post('/api/tasks/lock/acquire', {
+      task_id: taskId,
       user_id: Number(userId),
-      user_email: userEmail 
+      user_email: userEmail
     }).subscribe({
       next: () => {
         this.lockStatus.set({ locked: true, userEmail: 'dir (Ich)' });
@@ -154,11 +154,11 @@ export class DetailedTask implements OnInit, OnDestroy {
   private startHeartbeat(taskId: number) {
     const userId = getSessionStorage()?.getItem('userId');
     if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
-    
+
     this.heartbeatInterval = setInterval(() => {
-      this.http.post('/api/tasks/lock/heartbeat', { 
-        task_id: taskId, 
-        user_id: Number(userId) 
+      this.http.post('/api/tasks/lock/heartbeat', {
+        task_id: taskId,
+        user_id: Number(userId)
       }).subscribe({
         error: () => {
           clearInterval(this.heartbeatInterval);
@@ -173,13 +173,14 @@ export class DetailedTask implements OnInit, OnDestroy {
     const currentTask = this.task();
     const userId = getSessionStorage()?.getItem('userId');
     if (currentTask && userId && this.lockStatus()?.userEmail === 'dir (Ich)') {
-      this.http.post('/api/tasks/lock/release', { 
-        task_id: currentTask.task_id, 
-        user_id: Number(userId) 
+      this.http.post('/api/tasks/lock/release', {
+        task_id: currentTask.task_id,
+        user_id: Number(userId)
       }).subscribe();
     }
   }
 
+  // Startet Timer, der nach 30 Sekunden Inaktivität die Task freigibt
   private startViewTimer() {
     this.clearViewTimer();
     this.viewTimer = setTimeout(() => {
@@ -189,7 +190,7 @@ export class DetailedTask implements OnInit, OnDestroy {
       }
     }, this.VIEW_TIMEOUT);
   }
-
+  // Löscht den View-Timer, z.B. beim Wechsel in den Editiermodus
   private clearViewTimer() {
     if (this.viewTimer) {
       clearTimeout(this.viewTimer);
@@ -197,6 +198,7 @@ export class DetailedTask implements OnInit, OnDestroy {
     }
   }
 
+  // Wechselt in den Editiermodus, lädt mögliche Assignees
   onEdit() {
     const currentTask = this.task();
     if (!currentTask || !this.permissions().canEdit) return;
@@ -272,8 +274,8 @@ export class DetailedTask implements OnInit, OnDestroy {
     });
   }
 
-  cancelEdit() { 
-    this.isEditMode.set(false); 
+  cancelEdit() {
+    this.isEditMode.set(false);
     this.startViewTimer();
   }
 

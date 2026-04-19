@@ -110,6 +110,7 @@ export class EditProject implements OnInit, OnDestroy {
     });
   }
 
+  // Überprüft, ob der Benutzer Admin des Projekts ist, und lädt Projektdaten
   private checkAuthorization(userId: number, projectId: number): void {
     this.http.get<GetProjectsResponse>(`/api/project/get/${userId}`).subscribe({
       next: (response) => {
@@ -156,10 +157,12 @@ export class EditProject implements OnInit, OnDestroy {
     }
   }
 
+  // Fügt neues Mitgliedsfeld hinzu
   addMemberField(): void {
     this.newMemberFields.update((fields) => [...fields, this.createEmptyMemberField()]);
   }
 
+  // Entfernt Mitgliedsfeld und löscht ggf. laufenden Debounce-Timer
   removeNewMemberField(index: number): void {
     const field = this.newMemberFields()[index];
     if (field?.debounceTimer) {
@@ -223,6 +226,7 @@ export class EditProject implements OnInit, OnDestroy {
     }, 350);
   }
 
+  // Zeigt Vorschläge an, wenn das Eingabefeld fokussiert wird
   onMemberFocus(index: number): void {
     const fields = this.newMemberFields();
     const field = fields[index];
@@ -234,6 +238,7 @@ export class EditProject implements OnInit, OnDestroy {
     this.newMemberFields.set([...fields]);
   }
 
+  // Versteckt Vorschläge mit kleinem Delay, damit Klicks auf Vorschläge registriert werden
   onMemberBlur(index: number): void {
     const fields = this.newMemberFields();
     const field = fields[index];
@@ -253,6 +258,7 @@ export class EditProject implements OnInit, OnDestroy {
     }, 100);
   }
 
+  // Füllt E-Mail-Feld mit ausgewähltem Vorschlag und versteckt Vorschläge
   selectSuggestion(index: number, suggestion: UserSuggestion): void {
     const fields = this.newMemberFields();
     const field = fields[index];
@@ -280,10 +286,12 @@ export class EditProject implements OnInit, OnDestroy {
   }
 
 
+  // Entfernt bestehendes Mitgliedsfeld
   removeMemberField(index: number): void {
     this.memberFields.update((fields) => fields.filter((_, i) => i !== index));
   }
 
+  // Ändert Rolle eines Mitglieds
   onMemberRoleChange(index: number, role: string): void {
     const allowedRoles = new Set<MemberRole>(['Admin', 'Developer', 'Viewer']);
     const nextRole = allowedRoles.has(role as MemberRole) ? (role as MemberRole) : 'Viewer';
@@ -352,6 +360,7 @@ export class EditProject implements OnInit, OnDestroy {
       });
   }
 
+  // Löscht Projekt nach Bestätigung
   onDeleteProject(): void {
     if (!this.projectId || !this.userId) {
       alert('Projekt oder Benutzer ungültig.');
