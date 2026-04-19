@@ -12,6 +12,7 @@
 					type="text"
 					placeholder="Dein Nickname"
 					autocomplete="nickname"
+					maxlength="50"
 					required
 					[(ngModel)]="username"
 					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
@@ -26,6 +27,7 @@
 					type="email"
 					placeholder="name@beispiel.de"
 					autocomplete="email"
+					maxlength="100"
 					required
 					[(ngModel)]="email"
 					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
@@ -40,6 +42,7 @@
 					type="password"
 					placeholder="Passwort"
 					autocomplete="new-password"
+					maxlength="255"
 					required
 					[(ngModel)]="password"
 					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
@@ -54,6 +57,7 @@
 					type="password"
 					placeholder="Passwort wiederholen"
 					autocomplete="new-password"
+					maxlength="255"
 					required
 					[(ngModel)]="confirmPassword"
 					class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-slate-500"
