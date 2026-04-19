@@ -50,6 +50,7 @@ router.post("/login", async (req, res) => {
 router.post("/signup", async (req, res) => {
   const { username, email, password } = req.body;
 
+    // Überprüfen, ob alle erforderlichen Felder vorhanden sind
   if (!username || !email || !password) {
     return res
       .status(400)
@@ -67,7 +68,7 @@ router.post("/signup", async (req, res) => {
         .status(409)
         .json({ message: "E-Mail ist bereits registriert" });
     }
-
+    // nach erfolgreicher Abfrage wird der neue Benutzer in die Datenbank eingefügt
     await db.execute(
       "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
       [username, email, password],
@@ -97,7 +98,8 @@ router.post('/profile', async (req, res) => {
     if (rows.length === 0) {
       return res.status(404).json({message: "Benutzer nicht gefunden"});
     }
-
+    
+      // Antwort an das Backend mit den Profildaten des Benutzers
     const user = rows[0];
     res.json({
       user: {

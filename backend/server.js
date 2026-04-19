@@ -34,4 +34,6 @@ server.listen(SERVER_PORT, '0.0.0.0', () => {
     console.log(`Port: ${SERVER_PORT}`);
     console.log(`Test-URL: http://localhost:8080/api/test`);
     console.log(`========================================`);
+    console.log(`Anwendung läuft auf https://localhost:8080`)
+    console.log(`========================================`);
 });
