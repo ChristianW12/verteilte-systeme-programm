@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { getSessionStorage } from '../../utils/storage';
 
+// Response-Typ vom Login-Endpoint
 type LoginResponse = {
   message: string;
   user?: {
@@ -20,6 +21,7 @@ type LoginResponse = {
   styleUrl: './login.css',
 })
 export class Login {
+  // Eingabefelder für E-Mail und Passwort
   email = '';
   password = '';
 
@@ -27,24 +29,30 @@ export class Login {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
 
-  // Authentifiziert Benutzer mit E-Mail/Passwort und speichert Session
+  // Login-Anfrage senden, Session speichern, zur vorherigen Seite navigieren
   onLogin() {
+    // Daten für Backend vorbereiten
     const loginData = {
       email: this.email,
       password: this.password
     };
 
+    // POST-Request an Backend
     this.http.post<LoginResponse>('/api/auth/login', loginData)
       .subscribe({
+        // Erfolg: Response verarbeiten und Session speichern
         next: (response) => {
           console.log('Login erfolgreich:', response);
           const storage = getSessionStorage();
 
+          // Daten aus Response auslesen
           const userId = response.user?.id;
           const userEmail = response.user?.email;
 
+          // Validierung: user.id und user.email müssen vorhanden sein
           if (userId == null || !userEmail) {
             console.error('Ungueltige Login-Response: user.id oder user.email fehlt', response);
+            // Session-Daten bereinigen bei ungültiger Response
             storage?.removeItem('isLoggedIn');
             storage?.removeItem('userId');
             storage?.removeItem('userEmail');
@@ -52,13 +60,16 @@ export class Login {
             return;
           }
 
+          // Session-Daten speichern im Session Storage
           storage?.setItem('isLoggedIn', 'true');
           storage?.setItem('userId', String(userId));
           storage?.setItem('userEmail', userEmail);
 
+          // Zur returnUrl navigieren (oder Dashboard als Fallback)
           const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
           this.router.navigateByUrl(returnUrl);
         },
+        // Fehler: Fehlermeldung anzeigen
         error: (err) => {
           console.error('Login-Fehler:', err);
           alert('Anmeldung fehlgeschlagen. Bitte prüfe deine E-Mail und dein Passwort.');
