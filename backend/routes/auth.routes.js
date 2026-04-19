@@ -57,6 +57,25 @@ router.post("/signup", async (req, res) => {
       .json({ message: "Benutzername, E-Mail und Passwort sind erforderlich" });
   }
 
+  // Längenbeschränkungen validieren
+  if (username.length < 3 || username.length > 30) {
+    return res
+      .status(400)
+      .json({ message: "Benutzername muss zwischen 3 und 30 Zeichen lang sein" });
+  }
+
+  if (email.length > 50) {
+    return res
+      .status(400)
+      .json({ message: "E-Mail darf maximal 50 Zeichen lang sein" });
+  }
+
+  if (password.length < 8 || password.length > 100) {
+    return res
+      .status(400)
+      .json({ message: "Passwort muss zwischen 8 und 100 Zeichen lang sein" });
+  }
+
   try {
     const [existingUser] = await db.execute(
       "SELECT user_id FROM users WHERE email = ?",
