@@ -81,8 +81,8 @@ export class Signup {
       fehlermeldung += 'Bitte eine gültige E-Mail eingeben (z. B. name@domain.de)\n';
     }
 
-    if (this.email.trim().length > 100) {
-      fehlermeldung += 'E-Mail darf maximal 100 Zeichen haben\n';
+    if (this.email.trim().length > 50) {
+      fehlermeldung += 'E-Mail darf maximal 50 Zeichen haben\n';
     }
 
     // Passwort-Validierung
@@ -90,8 +90,8 @@ export class Signup {
       fehlermeldung += 'Passwort muss mindestens 8 Zeichen haben\n';
     }
 
-    if (this.password.length > 255) {
-      fehlermeldung += 'Passwort darf maximal 255 Zeichen haben\n';
+    if (this.password.length > 100) {
+      fehlermeldung += 'Passwort darf maximal 100 Zeichen haben\n';
     }
 
     if (this.password !== this.confirmPassword) {

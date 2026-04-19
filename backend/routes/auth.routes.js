@@ -64,16 +64,16 @@ router.post("/signup", async (req, res) => {
       .json({ message: "Benutzername muss zwischen 3 und 30 Zeichen lang sein" });
   }
 
-  if (email.length > 100) {
+  if (email.length > 50) {
     return res
       .status(400)
-      .json({ message: "E-Mail darf maximal 100 Zeichen lang sein" });
+      .json({ message: "E-Mail darf maximal 50 Zeichen lang sein" });
   }
 
-  if (password.length < 8 || password.length > 255) {
+  if (password.length < 8 || password.length > 100) {
     return res
       .status(400)
-      .json({ message: "Passwort muss zwischen 8 und 255 Zeichen lang sein" });
+      .json({ message: "Passwort muss zwischen 8 und 100 Zeichen lang sein" });
   }
 
   try {
