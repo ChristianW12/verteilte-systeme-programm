@@ -72,8 +72,8 @@ export class Signup {
       fehlermeldung += 'Nickname muss mindestens 3 Zeichen haben\n';
     }
 
-    if (this.username.trim().length > 50) {
-      fehlermeldung += 'Nickname darf maximal 50 Zeichen haben\n';
+    if (this.username.trim().length > 30) {
+      fehlermeldung += 'Nickname darf maximal 30 Zeichen haben\n';
     }
 
     // Email-Validierung

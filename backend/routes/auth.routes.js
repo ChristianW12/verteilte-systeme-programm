@@ -58,10 +58,10 @@ router.post("/signup", async (req, res) => {
   }
 
   // Längenbeschränkungen validieren
-  if (username.length < 3 || username.length > 50) {
+  if (username.length < 3 || username.length > 30) {
     return res
       .status(400)
-      .json({ message: "Benutzername muss zwischen 3 und 50 Zeichen lang sein" });
+      .json({ message: "Benutzername muss zwischen 3 und 30 Zeichen lang sein" });
   }
 
   if (email.length > 100) {
