@@ -10,10 +10,10 @@ type ProjectFromApi = {
   name: string;
   description: string;
   created_by: string;
-  admin_id: number;
+  admin_id: string;
   role: string;
   members?: {
-    user_id: number;
+    user_id: string;
     username: string;
     email: string;
     role?: string;
@@ -21,12 +21,12 @@ type ProjectFromApi = {
 };
 
 type GetProjectsResponse = {
-  userId: number;
+  userId: string;
   projects: ProjectFromApi[];
 };
 
 type UserSuggestion = {
-  user_id: number;
+  user_id: string;
   email: string;
 };
 
@@ -57,7 +57,7 @@ export class EditProject implements OnInit, OnDestroy {
   private http = inject(HttpClient);
 
   projectId: number | null = null;
-  userId: number | null = null;
+  userId: string | null = null;
   creatorEmail: string | null = null;
   isAuthorized = false;
   isLoading = true;
@@ -87,9 +87,9 @@ export class EditProject implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const userIdRaw = getSessionStorage()?.getItem('userId');
-    const userId = Number(userIdRaw);
+    const userId = String(userIdRaw || '').trim();
 
-    if (!userIdRaw || !Number.isInteger(userId) || userId <= 0) {
+    if (!userId) {
       this.router.navigate(['/login']);
       return;
     }
@@ -111,7 +111,7 @@ export class EditProject implements OnInit, OnDestroy {
   }
 
   // Überprüft, ob der Benutzer Admin des Projekts ist, und lädt Projektdaten
-  private checkAuthorization(userId: number, projectId: number): void {
+  private checkAuthorization(userId: string, projectId: number): void {
     this.http.get<GetProjectsResponse>(`/api/project/get/${userId}`).subscribe({
       next: (response) => {
         const project = response.projects.find((p) => p.project_id === projectId);
@@ -121,7 +121,7 @@ export class EditProject implements OnInit, OnDestroy {
           return;
         }
 
-        if (project.admin_id !== userId) {
+        if (String(project.admin_id) !== userId) {
           this.router.navigate(['/dashboard']);
           return;
         }

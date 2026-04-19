@@ -9,7 +9,7 @@ const { publishEvent } = require("../realtime.publisher");
 router.post("/create", async (req, res) => {
   const { name, description, createdBy, members } = req.body;
 
-  const createdById = Number(createdBy);
+  const createdById = String(createdBy || "").trim();
   if (!name || !String(name).trim()) {
     return res.status(400).json({ message: "Projektname ist erforderlich" });
   }
@@ -27,7 +27,7 @@ router.post("/create", async (req, res) => {
       .json({ message: "Beschreibung darf maximal 500 Zeichen lang sein" });
   }
 
-  if (!Number.isInteger(createdById) || createdById <= 0) {
+  if (!createdById) {
     return res.status(400).json({ message: "Ungueltige createdBy-ID" });
   }
 
@@ -101,7 +101,7 @@ router.post("/create", async (req, res) => {
           continue;
         }
 
-        if (Number(user.user_id) === createdById) {
+        if (String(user.user_id) === createdById) {
           continue;
         }
 
@@ -140,14 +140,13 @@ router.post("/delete", async (req, res) => {
   const { project_id, user_id } = req.body;
 
   const projectId = Number(project_id);
-  const userId = Number(user_id);
+  const userId = String(user_id || "").trim();
 
   // Input-Validierung
   if (
     !Number.isInteger(projectId) ||
     projectId <= 0 ||
-    !Number.isInteger(userId) ||
-    userId <= 0
+    !userId
   ) {
     return res
       .status(400)
@@ -166,7 +165,7 @@ router.post("/delete", async (req, res) => {
     }
 
     const project = projectRows[0];
-    if (Number(project.created_by) !== userId) {
+    if (String(project.created_by) !== userId) {
       return res
         .status(403)
         .json({ message: "Keine Berechtigung zum Löschen dieses Projekts" });
@@ -189,14 +188,13 @@ router.post("/edit", async (req, res) => {
   const { project_id, user_id, name, description, members } = req.body;
 
   const projectId = Number(project_id);
-  const userId = Number(user_id);
+  const userId = String(user_id || "").trim();
 
   // Input-Validierung
   if (
     !Number.isInteger(projectId) ||
     projectId <= 0 ||
-    !Number.isInteger(userId) ||
-    userId <= 0
+    !userId
   ) {
     return res
       .status(400)
@@ -339,7 +337,7 @@ router.post("/edit", async (req, res) => {
     for (const member of uniqueMembers) {
       if (!existingMemberMap.has(member.email)) {
         const user = usersByEmail.get(member.email);
-        if (user && user.user_id !== userId) {
+        if (user && String(user.user_id) !== userId) {
           toAdd.push({
             user_id: user.user_id,
             role: member.role,
@@ -445,9 +443,9 @@ router.get("/member-search", async (req, res) => {
 
 // Ruft alle Projekte eines Benutzers mit Mitgliederlisten ab
 router.get("/get/:userId", async (req, res) => {
-  const userId = Number(req.params.userId);
+  const userId = String(req.params.userId || "").trim();
 
-  if (!Number.isInteger(userId) || userId <= 0) {
+  if (!userId) {
     return res.status(400).json({ message: "Ungueltige userId" });
   }
 

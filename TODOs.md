@@ -1,6 +1,3 @@
-# Weiteres Vorgehen
-
-- Passwort und UserID Hasching mit Bycript GANZ WICHTIG AUF DAS RICHTIGE PACKAGE ACHTEN!!!!!!
-- Locking für Tasks erst wenn man in der edit task seite ist nicht schon bei der overview
-- Doku für Programmcode machen
-- Kommentare im Code machen
+- Entcrypten einfügen 
+- Fehler in init.sql entfernen mit Mitglieder in Projekt haben als Viewer eine Task zugewiesen
+- Sicherheitskonzept in Latex arbeit überabrietn das dort nichts mehr mit JWT steht

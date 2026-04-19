@@ -12,7 +12,7 @@ type TaskDetail = {
   status: 'To Do' | 'In Progress' | 'Done' | 'Blocked';
   priority: 'Low' | 'Medium' | 'High';
   assigned_to?: string | null;
-  assigned_to_id?: number | null;
+  assigned_to_id?: string | null;
   deadline?: string | null;
 };
 
@@ -23,7 +23,7 @@ type TaskPermissions = {
 };
 
 type Assignee = {
-  user_id: number;
+  user_id: string;
   email: string;
 };
 
@@ -94,7 +94,7 @@ export class DetailedTask implements OnInit, OnDestroy {
     const userId = getSessionStorage()?.getItem('userId');
     const userEmail = getSessionStorage()?.getItem('userEmail');
 
-    let queryParams = `?user_id=${Number(userId)}`;
+    let queryParams = `?user_id=${encodeURIComponent(String(userId || ''))}`;
     if (userEmail) queryParams += `&user_email=${encodeURIComponent(userEmail)}`;
 
     this.http
@@ -124,7 +124,7 @@ export class DetailedTask implements OnInit, OnDestroy {
 
     this.http.post('/api/tasks/lock/acquire', {
       task_id: taskId,
-      user_id: Number(userId),
+      user_id: userId,
       user_email: userEmail
     }).subscribe({
       next: () => {
@@ -158,7 +158,7 @@ export class DetailedTask implements OnInit, OnDestroy {
     this.heartbeatInterval = setInterval(() => {
       this.http.post('/api/tasks/lock/heartbeat', {
         task_id: taskId,
-        user_id: Number(userId)
+        user_id: userId
       }).subscribe({
         error: () => {
           clearInterval(this.heartbeatInterval);
@@ -175,7 +175,7 @@ export class DetailedTask implements OnInit, OnDestroy {
     if (currentTask && userId && this.lockStatus()?.userEmail === 'dir (Ich)') {
       this.http.post('/api/tasks/lock/release', {
         task_id: currentTask.task_id,
-        user_id: Number(userId)
+        user_id: userId
       }).subscribe();
     }
   }
@@ -226,9 +226,9 @@ export class DetailedTask implements OnInit, OnDestroy {
 
   // Ruft mögliche Assignees für diese Task ab
   loadAssignees(taskId: number) {
-    const userId = Number(getSessionStorage()?.getItem('userId'));
+    const userId = String(getSessionStorage()?.getItem('userId') || '').trim();
     this.http
-      .get<{ assignees?: Assignee[] }>(`/api/tasks/${taskId}/assignees?user_id=${userId}`)
+      .get<{ assignees?: Assignee[] }>(`/api/tasks/${taskId}/assignees?user_id=${encodeURIComponent(userId)}`)
       .subscribe({
         next: (res) => this.assignees.set(res.assignees ?? []),
         error: () => this.assignees.set([])
@@ -242,7 +242,7 @@ export class DetailedTask implements OnInit, OnDestroy {
   // Speichert Task-Änderungen (mit Lock-Release)
   saveEdit() {
     const currentTask = this.task();
-    const userId = Number(getSessionStorage()?.getItem('userId'));
+    const userId = String(getSessionStorage()?.getItem('userId') || '').trim();
     const form = this.editForm();
 
     if (!currentTask || !userId || !this.permissions().canEdit) return;
@@ -257,7 +257,7 @@ export class DetailedTask implements OnInit, OnDestroy {
       status: form.status,
       priority: form.priority,
       deadline: form.deadline || null,
-      assigned_to: this.permissions().canEditAssignee ? (form.assigned_to ? Number(form.assigned_to) : null) : undefined
+      assigned_to: this.permissions().canEditAssignee ? (form.assigned_to || null) : undefined
     };
 
     this.http.post<{ message: string }>('/api/tasks/edit', payload).subscribe({
@@ -281,7 +281,7 @@ export class DetailedTask implements OnInit, OnDestroy {
 
   // Löscht Task nach Bestätigung
   onDelete() {
-    const userId = Number(getSessionStorage()?.getItem('userId'));
+    const userId = String(getSessionStorage()?.getItem('userId') || '').trim();
     const currentTask = this.task();
     if (!currentTask || !userId || !this.permissions().canDelete) return;
 

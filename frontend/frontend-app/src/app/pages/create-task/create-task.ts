@@ -17,7 +17,7 @@ type ProjectsResponse = {
 };
 
 type User = {
-  user_id: number;
+  user_id: string;
   email: string;
 };
 
@@ -83,7 +83,7 @@ export class CreateTask implements OnInit {
       return;
     }
 
-    this.http.post<ProjectsResponse>('/api/tasks/get', { user_id: Number(userId) }).subscribe({
+    this.http.post<ProjectsResponse>('/api/tasks/get', { user_id: userId }).subscribe({
       next: (response) => {
         this.projects.set(response.projects ?? []);
       },
@@ -153,8 +153,8 @@ export class CreateTask implements OnInit {
       status: this.status,
       priority: this.priority,
       deadline: this.deadline || null,
-      created_by: Number(userId),
-      assigned_to: this.assignedTo ? Number(this.assignedTo) : null,
+      created_by: userId,
+      assigned_to: this.assignedTo || null,
     };
 
     this.http.post<CreateTaskResponse>('/api/tasks/create', payload).subscribe({
@@ -178,5 +178,4 @@ export class CreateTask implements OnInit {
     });
   }
 }
-
 

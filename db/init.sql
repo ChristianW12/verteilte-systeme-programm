@@ -1,29 +1,38 @@
-﻿-- Erstellen der Tabellen für Jira 2.0
+-- Initialschema + Seeddaten
+-- Ziel: String-basierte user_id, gehashte Passwoerter, reduzierte Testdaten
 
--- 1. Benutzer (Users)
-CREATE TABLE IF NOT EXISTS users (
-    user_id INT AUTO_INCREMENT PRIMARY KEY,
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS tasks;
+DROP TABLE IF EXISTS project_members;
+DROP TABLE IF EXISTS projects;
+DROP TABLE IF EXISTS users;
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- 1. Benutzer
+CREATE TABLE users (
+    user_id VARCHAR(64) PRIMARY KEY,
     username VARCHAR(50) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Projekte (Projects)
-CREATE TABLE IF NOT EXISTS projects (
+-- 2. Projekte
+CREATE TABLE projects (
     project_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    created_by INT default null,
+    created_by VARCHAR(64) DEFAULT NULL,
     FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- 3. Aufgaben (Tasks/Issues)
-CREATE TABLE IF NOT EXISTS tasks (
+-- 3. Aufgaben
+CREATE TABLE tasks (
     task_id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
-    assigned_to INT,
+    assigned_to VARCHAR(64),
     title VARCHAR(255) NOT NULL,
     description TEXT,
     status ENUM('To Do', 'In Progress', 'Done', 'Blocked') DEFAULT 'To Do',
@@ -31,28 +40,28 @@ CREATE TABLE IF NOT EXISTS tasks (
     deadline DATETIME,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    created_by INT,
+    created_by VARCHAR(64),
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
     FOREIGN KEY (assigned_to) REFERENCES users(user_id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
--- 4. Kommentare (Comments)
-CREATE TABLE IF NOT EXISTS comments (
+-- 4. Kommentare
+CREATE TABLE comments (
     comment_id INT AUTO_INCREMENT PRIMARY KEY,
     task_id INT NOT NULL,
-    user_id INT NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
     comment_text TEXT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- 5. Projektmitglieder (Project Members)
-CREATE TABLE IF NOT EXISTS project_members (
+-- 5. Projektmitglieder
+CREATE TABLE project_members (
     member_id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
-    user_id INT NOT NULL,
+    user_id VARCHAR(64) NOT NULL,
     role ENUM('Developer', 'Admin', 'Viewer') DEFAULT 'Viewer',
     added TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uq_project_user (project_id, user_id),
@@ -60,431 +69,38 @@ CREATE TABLE IF NOT EXISTS project_members (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- Testdaten
+-- Seed-User (4 Benutzer, gehashte Passwoerter)
+INSERT INTO users (user_id, username, email, password) VALUES
+('usr_3f8a1c2e9b4d7f1a', 'christian', 'christian@example.com', '$2b$10$CGzKA/aFpGkjSbHJXatl0eCkPi2NJhJlDeBkj4SeZFelL06fu.6ba'),
+('usr_7d2e5f9a1c3b8e4f', 'alex', 'alex@example.com', '$2b$10$u8gIKn/SSVMwt8j66grlKOr.83yu/OItAzqv9OysG0vncYfUKAa0u'),
+('usr_4a9e2b7c5d1f6e3a', 'luca', 'luca@example.com', '$2b$10$Pwz1us2/VXxQY3nJiFUyher/omMemdqNtEyql0AOPImcGI/Y1wLZG'),
+('usr_8c1d4e7a2b9f5c6d', 'melina', 'melina@example.com', '$2b$10$Shvv31fVNWZsIvXAQoqqAeCL4Q9nPNfaVd2cFqGybDDLY3BhCS0.W');
 
--- Benutzer
-INSERT INTO users (username, email, password) VALUES
-('christian', 'christian@example.com', 'PasswortChristian123'),
-('alex', 'alex@example.com', 'PasswortAlex123'),
-('melina', 'melina@example.com', 'PasswortMelina123'),
-('luca', 'luca@example.com', 'PasswortLuca123');
-
--- Projekte
-INSERT INTO projects (name, description , created_by) VALUES 
-('Verteilte Systeme Projekt', 'Entwicklung einer skalierbaren Jira-Alternative mit Docker und Node.js.', 1),
-('Frontend Redesign', 'Modernisierung der Benutzeroberfäche auf Basis von Angular 19.', 1);
-
--- Projektmitglieder zuweisen
-INSERT INTO project_members (project_id, user_id, role) VALUES 
-(1, 1, 'Admin'),
-(1, 2, 'Developer'),
-(1, 3, 'Developer'),
-(2, 1, 'Admin'),
-(2, 3, 'Developer'),
-(2, 2, 'Viewer');
-
--- Aufgaben für Projekt 1
-INSERT INTO tasks (project_id, title, description, status, assigned_to, created_by) VALUES 
-(1, 'Datenbank aufsetzen', 'Entwurf und Implementierung des relationalen Datenmodells in PostgreSQL.','Done', 2, 1),
-(1, 'Backend API implementieren', 'Entwicklung der RESTful API-Endpunkte mit Express.js und Validierung.','In Progress', 2, 1),
-(1, 'Dockerisierung', 'Erstellung von Multi-Stage Dockerfiles für Frontend und Backend Komponenten.','To Do', 3, 1),
-(1, 'Load Balancer konfigurieren', 'Einrichtung von Nginx als Reverse Proxy zur Lastverteilung.','To Do', 1, 1);
-
--- Aufgaben für Projekt 2
-INSERT INTO tasks (project_id, title, description, status, assigned_to, created_by) VALUES 
-(2, 'Landing Page erstellen', 'Entwicklung einer responsiven Startseite mit modernem UI/UX Design.','In Progress', 3, 1),
-(2, 'Login Komponente bauen', 'Implementierung eines sicheren Login-Flows mit JWT-Handhabung.','Done', 3, 1),
-(2, 'Responsive Design', 'Anpassung der Layouts für mobile Endgeräte und Tablets.','To Do', 2, 1);
-
--- Neue Testdaten (Generiert)
-
--- Zusätzliche Benutzer
-INSERT INTO users (username, email, password) VALUES
-('marcel.bauer79', 'marcel.bauer79@example.com', 'PasswortMarcel808'),
-('julian.schröder92', 'julian.schröder92@example.com', 'PasswortJulian815'),
-('daniela.schmid41', 'daniela.schmid41@example.com', 'PasswortDaniela431'),
-('daniel.krause40', 'daniel.krause40@example.com', 'PasswortDaniel950'),
-('jan.neumann29', 'jan.neumann29@example.com', 'PasswortJan658'),
-('emma.koch76', 'emma.koch76@example.com', 'PasswortEmma544'),
-('melanie.koch54', 'melanie.koch54@example.com', 'PasswortMelanie377'),
-('emma.schneider78', 'emma.schneider78@example.com', 'PasswortEmma120'),
-('julia.schmitz60', 'julia.schmitz60@example.com', 'PasswortJulia883'),
-('jessica.zimmermann72', 'jessica.zimmermann72@example.com', 'PasswortJessica273'),
-('ben.werner54', 'ben.werner54@example.com', 'PasswortBen307'),
-('finn.klein57', 'finn.klein57@example.com', 'PasswortFinn680'),
-('marie.wagner26', 'marie.wagner26@example.com', 'PasswortMarie959'),
-('max.braun74', 'max.braun74@example.com', 'PasswortMax106'),
-('ben.schmitt50', 'ben.schmitt50@example.com', 'PasswortBen415'),
-('daniel.hartmann17', 'daniel.hartmann17@example.com', 'PasswortDaniel522'),
-('stefanie.weber31', 'stefanie.weber31@example.com', 'PasswortStefanie136'),
-('tobi.meier82', 'tobi.meier82@example.com', 'PasswortTobi972'),
-('stefan.braun57', 'stefan.braun57@example.com', 'PasswortStefan150'),
-('martin.schulz97', 'martin.schulz97@example.com', 'PasswortMartin256'),
-('lukas.fischer43', 'lukas.fischer43@example.com', 'PasswortLukas229'),
-('thomas.becker98', 'thomas.becker98@example.com', 'PasswortThomas473'),
-('kevin.richter39', 'kevin.richter39@example.com', 'PasswortKevin599'),
-('daniela.weiß95', 'daniela.weiß95@example.com', 'PasswortDaniela923'),
-('nadine.schmitz25', 'nadine.schmitz25@example.com', 'PasswortNadine596'),
-('nico.huber79', 'nico.huber79@example.com', 'PasswortNico730'),
-('clara.scholz18', 'clara.scholz18@example.com', 'PasswortClara803'),
-('andreas.walter60', 'andreas.walter60@example.com', 'PasswortAndreas917'),
-('marie.fischer19', 'marie.fischer19@example.com', 'PasswortMarie316'),
-('elias.krause15', 'elias.krause15@example.com', 'PasswortElias780'),
-('leni.fischer16', 'leni.fischer16@example.com', 'PasswortLeni544'),
-('tobi.meyer29', 'tobi.meyer29@example.com', 'PasswortTobi636'),
-('ben.werner34', 'ben.werner34@example.com', 'PasswortBen911'),
-('philipp.möller30', 'philipp.möller30@example.com', 'PasswortPhilipp286'),
-('paul.weiß23', 'paul.weiß23@example.com', 'PasswortPaul289'),
-('noah.müller62', 'noah.müller62@example.com', 'PasswortNoah445'),
-('lena.schmitt78', 'lena.schmitt78@example.com', 'PasswortLena597'),
-('finn.becker35', 'finn.becker35@example.com', 'PasswortFinn564'),
-('laura.meyer39', 'laura.meyer39@example.com', 'PasswortLaura710'),
-('david.fuchs77', 'david.fuchs77@example.com', 'PasswortDavid172'),
-('philipp.maier93', 'philipp.maier93@example.com', 'PasswortPhilipp664'),
-('emma.köhler10', 'emma.köhler10@example.com', 'PasswortEmma929'),
-('nadine.walter66', 'nadine.walter66@example.com', 'PasswortNadine393'),
-('lukas.lange38', 'lukas.lange38@example.com', 'PasswortLukas553'),
-('fabian.herrmann41', 'fabian.herrmann41@example.com', 'PasswortFabian939'),
-('erik.schmitz82', 'erik.schmitz82@example.com', 'PasswortErik205'),
-('julia.jung30', 'julia.jung30@example.com', 'PasswortJulia907'),
-('sophia.peters74', 'sophia.peters74@example.com', 'PasswortSophia123'),
-('dennis.müller40', 'dennis.müller40@example.com', 'PasswortDennis411'),
-('nicole.schubert42', 'nicole.schubert42@example.com', 'PasswortNicole132'),
-('lena.kaiser90', 'lena.kaiser90@example.com', 'PasswortLena460'),
-('erik.mayer44', 'erik.mayer44@example.com', 'PasswortErik937'),
-('sophie.krause75', 'sophie.krause75@example.com', 'PasswortSophie136'),
-('noah.kaiser33', 'noah.kaiser33@example.com', 'PasswortNoah425'),
-('anna.müller93', 'anna.müller93@example.com', 'PasswortAnna273'),
-('max.fischer59', 'max.fischer59@example.com', 'PasswortMax677'),
-('mila.maier44', 'mila.maier44@example.com', 'PasswortMila473'),
-('vanessa.jung21', 'vanessa.jung21@example.com', 'PasswortVanessa872'),
-('noah.lange50', 'noah.lange50@example.com', 'PasswortNoah155'),
-('paul.schulze49', 'paul.schulze49@example.com', 'PasswortPaul724'),
-('hannah.krause65', 'hannah.krause65@example.com', 'PasswortHannah966'),
-('nadine.hahn52', 'nadine.hahn52@example.com', 'PasswortNadine538'),
-('martin.schröder90', 'martin.schröder90@example.com', 'PasswortMartin596'),
-('vanessa.müller82', 'vanessa.müller82@example.com', 'PasswortVanessa742'),
-('markus.hofmann78', 'markus.hofmann78@example.com', 'PasswortMarkus895'),
-('felix.lange93', 'felix.lange93@example.com', 'PasswortFelix783'),
-('stefan.fuchs59', 'stefan.fuchs59@example.com', 'PasswortStefan390'),
-('thomas.richter48', 'thomas.richter48@example.com', 'PasswortThomas220'),
-('nadine.fischer32', 'nadine.fischer32@example.com', 'PasswortNadine167'),
-('noah.jung33', 'noah.jung33@example.com', 'PasswortNoah813');
-
--- Zusätzliche Projekte
+-- Seed-Projekte (2 Projekte)
 INSERT INTO projects (name, description, created_by) VALUES
-('Investition und Finanzierung', 'Analyse von Investitionsprojekten und Finanzierungsmodellen.', 1),
-('E-Business', 'Entwicklung von Strategien für den elektronischen Handel.', 3),
-('Mobile App Dev', 'Programmierung von nativen und hybriden mobilen Anwendungen.', 3),
-('Datenbanken II', 'Fortgeschrittene Konzepte der Datenbankmodellierung und SQL-Optimierung.', 3),
-('IT-Projektmanagement', 'Planung und Steuerung von IT-Projekten nach agilen Methoden.', 2),
-('IT-Sicherheit', 'Maßnahmen zum Schutz von IT-Systemen und Netzwerken.', 1),
-('Web-Technologien', 'Entwicklung moderner Webanwendungen mit aktuellen Frameworks.', 2),
-('ERP-Systeme', 'Einführung und Anpassung von ERP-Systemen wie SAP.', 1),
-('Künstliche Intelligenz', 'Entwicklung und Anwendung von Algorithmen des maschinellen Lernens.', 2),
-('Geschäftsprozessmodellierung', 'Analyse und Optimierung von Geschäftsprozessen mit BPMN.', 3);
+('Verteilte Systeme Projekt', 'Entwicklung einer skalierbaren Jira-Alternative mit Docker und Node.js.', 'usr_3f8a1c2e9b4d7f1a'),
+('Frontend Redesign', 'Modernisierung der Benutzeroberflaeche auf Basis von Angular 19.', 'usr_3f8a1c2e9b4d7f1a');
 
--- Zusätzliche Projektmitglieder
+-- Projektmitglieder
 INSERT INTO project_members (project_id, user_id, role) VALUES
-(3, 1, 'Admin'),
-(3, 2, 'Viewer'),
-(3, 27, 'Viewer'),
-(3, 52, 'Viewer'),
-(3, 59, 'Developer'),
-(3, 19, 'Developer'),
-(3, 57, 'Developer'),
-(3, 17, 'Viewer'),
-(3, 42, 'Developer'),
-(3, 62, 'Developer'),
-(4, 3, 'Admin'),
-(4, 70, 'Developer'),
-(4, 31, 'Viewer'),
-(4, 9, 'Developer'),
-(4, 6, 'Viewer'),
-(4, 46, 'Viewer'),
-(4, 33, 'Viewer'),
-(4, 62, 'Developer'),
-(4, 8, 'Developer'),
-(4, 58, 'Developer'),
-(5, 3, 'Admin'),
-(5, 38, 'Developer'),
-(5, 51, 'Viewer'),
-(5, 16, 'Developer'),
-(5, 43, 'Viewer'),
-(6, 3, 'Admin'),
-(6, 15, 'Developer'),
-(6, 12, 'Viewer'),
-(6, 30, 'Developer'),
-(6, 73, 'Developer'),
-(6, 19, 'Developer'),
-(6, 47, 'Developer'),
-(6, 38, 'Developer'),
-(6, 64, 'Developer'),
-(6, 51, 'Developer'),
-(7, 2, 'Admin'),
-(7, 59, 'Developer'),
-(7, 34, 'Developer'),
-(7, 16, 'Viewer'),
-(7, 6, 'Developer'),
-(8, 1, 'Admin'),
-(8, 7, 'Developer'),
-(8, 17, 'Developer'),
-(8, 64, 'Developer'),
-(8, 27, 'Viewer'),
-(9, 2, 'Admin'),
-(9, 4, 'Viewer'),
-(9, 26, 'Viewer'),
-(9, 32, 'Developer'),
-(9, 14, 'Developer'),
-(9, 37, 'Developer'),
-(10, 1, 'Admin'),
-(10, 44, 'Developer'),
-(10, 70, 'Viewer'),
-(10, 2, 'Viewer'),
-(10, 62, 'Developer'),
-(11, 2, 'Admin'),
-(11, 13, 'Developer'),
-(11, 23, 'Developer'),
-(11, 6, 'Developer'),
-(11, 25, 'Developer'),
-(11, 21, 'Developer'),
-(12, 3, 'Admin'),
-(12, 15, 'Viewer'),
-(12, 50, 'Developer'),
-(12, 38, 'Developer'),
-(12, 24, 'Developer');
+(1, 'usr_3f8a1c2e9b4d7f1a', 'Admin'),
+(1, 'usr_7d2e5f9a1c3b8e4f', 'Developer'),
+(1, 'usr_8c1d4e7a2b9f5c6d', 'Developer'),
+(1, 'usr_4a9e2b7c5d1f6e3a', 'Viewer'),
+(2, 'usr_3f8a1c2e9b4d7f1a', 'Admin'),
+(2, 'usr_8c1d4e7a2b9f5c6d', 'Developer'),
+(2, 'usr_7d2e5f9a1c3b8e4f', 'Viewer'),
+(2, 'usr_4a9e2b7c5d1f6e3a', 'Developer');
 
--- Zusätzliche Aufgaben
+-- Aufgaben fuer Projekt 1
 INSERT INTO tasks (project_id, title, description, status, priority, assigned_to, created_by) VALUES
-(3, 'Frontend Komponenten erstellen', 'Entwicklung von Dashboards zur Visualisierung von ROI-Kennzahlen.','In Progress', 'Medium', 42, 2),
-(3, 'Performance Tuning', 'Optimierung der Berechnungsalgorithmen für Kapitalwertmethoden.','To Do', 'Medium', 1, 1),
-(3, 'Deployment vorbereiten', 'Bereitstellung des Finanzplanungstools auf der Testumgebung.','In Progress', 'Low', 52, 1),
-(3, 'Präsentation vorbereiten', 'Erstellung der Abschlusspräsentation über die Wirtschaftlichkeitsanalyse.','To Do', 'Low', 52, 1),
-(3, 'Bugfixing', 'Korrektur von Rundungsfehlern in der Zinseszinsberechnung.','In Progress', 'Medium', 27, 3),
-(3, 'API Dokumentation', 'Dokumentation der Schnittstellen für Finanzmarktdaten-Provider.','Done', 'High', 42, 1),
-(3, 'Präsentation vorbereiten', 'Erstellung der Abschlusspräsentation über die Wirtschaftlichkeitsanalyse.','Blocked', 'Medium', 59, 4),
-(3, 'Datenmigration', 'Import historischer Marktdaten aus CSV-Quellen.','Done', 'High', 1, 2),
-(3, 'Unit Tests schreiben', 'Validierung der finanzmathematischen Funktionen.','Blocked', 'Medium', 57, 4),
-(3, 'Präsentation vorbereiten', 'Erstellung der Abschlusspräsentation über die Wirtschaftlichkeitsanalyse.','To Do', 'Low', 27, 2),
-(3, 'Frontend Komponenten erstellen', 'Entwicklung von Dashboards zur Visualisierung von ROI-Kennzahlen.','To Do', 'High', 52, 1),
-(3, 'Performance Tuning', 'Optimierung der Berechnungsalgorithmen für Kapitalwertmethoden.','To Do', 'High', 42, 4),
-(3, 'Prototyp entwickeln', 'Entwurf eines interaktiven Tools zur Investitionsrechnung.','Blocked', 'Low', 52, 2),
-(3, 'Prototyp entwickeln', 'Entwurf eines interaktiven Tools zur Investitionsrechnung.','To Do', 'Medium', 57, 3),
-(3, 'CI/CD Pipeline einrichten', 'Automatisierung der Tests für Finanzberechnungen.','Done', 'Medium', 42, 4),
-(3, 'Security Audit', 'Sicherheitsprüfung der sensiblen Finanzdaten-Verarbeitung.','To Do', 'High', 1, 2),
-(3, 'Präsentation vorbereiten', 'Erstellung der Abschlusspräsentation über die Wirtschaftlichkeitsanalyse.','In Progress', 'Low', 17, 2),
-(3, 'Lasttests durchführen', 'Simulation hoher Nutzerlasten während der Budgetplanungsphase.','Done', 'High', 62, 4),
-(3, 'Code Review durchführen', 'Prüfung der Code-Qualität hinsichtlich Compliance-Vorgaben.','To Do', 'Medium', 1, 4),
-(3, 'Sprint Planning', 'Planung der nächsten Entwicklungsschritte im agilen Prozess.','To Do', 'Low', 17, 3),
-(3, 'Dokumentation verfassen', 'Erstellung des Benutzerhandbuchs für die Finanzsoftware.','Done', 'Medium', 59, 3),
-(4, 'Code Review durchführen', 'Prüfung der Checkout-Logik auf Sicherheit und Konsistenz.','In Progress', 'Low', 9, 2),
-(4, 'Datenmigration', 'Transfer des Produktkatalogs in das neue Shop-System.','To Do', 'High', 70, 3),
-(4, 'User Stories definieren', 'Erstellung von Anwendungsfällen aus Sicht des Endkunden.','In Progress', 'Medium', 46, 1),
-(4, 'Präsentation vorbereiten', 'Visualisierung der E-Commerce Strategie für das Management.','Done', 'Medium', 58, 2),
-(4, 'Präsentation vorbereiten', 'Visualisierung der E-Commerce Strategie für das Management.','Done', 'High', 8, 3),
-(4, 'Sprint Planning', 'Priorisierung des Backlogs für den nächsten Verkaufszyklus.','Blocked', 'Low', 3, 1),
-(4, 'API Dokumentation', 'Spezifikation der REST-API für die Anbindung von Bezahldiensten.','To Do', 'High', 62, 1),
-(4, 'Datenmigration', 'Transfer des Produktkatalogs in das neue Shop-System.','To Do', 'High', 8, 2),
-(4, 'Anforderungsanalyse erstellen', 'Ermittlung der technischen Anforderungen für das Shopsystem.','In Progress', 'High', 9, 4),
-(4, 'Anforderungsanalyse erstellen', 'Ermittlung der technischen Anforderungen für das Shopsystem.','Done', 'Low', 62, 1),
-(4, 'Frontend Komponenten erstellen', 'Gestaltung des Warenkorbs und der Produktkachel-Ansichten.','In Progress', 'Low', 9, 4),
-(4, 'ER-Modell entwerfen', 'Modellierung der Datenbank für Bestellungen und Kundenprofile.','Blocked', 'High', 62, 3),
-(4, 'Performance Tuning', 'Caching-Strategien zur Beschleunigung der Produktseiten.','Done', 'High', 3, 3),
-(4, 'Frontend Komponenten erstellen', 'Gestaltung des Warenkorbs und der Produktkachel-Ansichten.','In Progress', 'High', 58, 2),
-(4, 'Refactoring', 'Strukturierung des Codes zur besseren Erweiterbarkeit von Modulen.','In Progress', 'Low', 46, 2),
-(4, 'Performance Tuning', 'Caching-Strategien zur Beschleunigung der Produktseiten.','In Progress', 'Medium', 70, 1),
-(4, 'CI/CD Pipeline einrichten', 'Pipeline für automatisiertes Deployment des Online-Shops.','Done', 'Low', 70, 4),
-(4, 'Frontend Komponenten erstellen', 'Gestaltung des Warenkorbs und der Produktkachel-Ansichten.','In Progress', 'Medium', 58, 4),
-(4, 'Anforderungsanalyse erstellen', 'Ermittlung der technischen Anforderungen für das Shopsystem.','Done', 'Medium', 33, 2),
-(4, 'Meeting Protokoll', 'Festhalten der Entscheidungen aus dem Stakeholder-Workshop.','Blocked', 'Low', 3, 2),
-(4, 'ER-Modell entwerfen', 'Modellierung der Datenbank für Bestellungen und Kundenprofile.','To Do', 'Medium', 8, 4),
-(5, 'Lasttests durchführen', 'Stressprüfung der Backend-Schnittstellen bei mobilem Zugriff.','In Progress', 'High', 16, 4),
-(5, 'CI/CD Pipeline einrichten', 'Build-Automatisierung für Android (APK) und iOS (IPA).','To Do', 'Medium', 51, 2),
-(5, 'Kundenfeedback einholen', 'Auswertung der Usability-Tests mit der Zielgruppe.','Blocked', 'High', 16, 3),
-(5, 'Lasttests durchführen', 'Stressprüfung der Backend-Schnittstellen bei mobilem Zugriff.','Blocked', 'Medium', 43, 3),
-(5, 'Bugfixing', 'Behebung von Abstürzen bei schlechter Netzwerkverbindung.','Done', 'High', 3, 1),
-(5, 'Sprint Planning', 'Festlegung der Meilensteine für die mobile App-Entwicklung.','To Do', 'High', 16, 4),
-(5, 'Bugfixing', 'Behebung von Abstürzen bei schlechter Netzwerkverbindung.','In Progress', 'Low', 3, 1),
-(5, 'Kundenfeedback einholen', 'Auswertung der Usability-Tests mit der Zielgruppe.','In Progress', 'High', 16, 3),
-(5, 'ER-Modell entwerfen', 'Optimierung der lokalen SQLite-Datenbank für Offline-Modus.','To Do', 'Low', 16, 3),
-(5, 'Prototyp entwickeln', 'High-Fidelity Wireframes für die Hauptbenutzerführung.','Blocked', 'High', 38, 2),
-(5, 'Code Review durchführen', 'Prüfung der Swift/Kotlin Best Practices.','In Progress', 'Low', 16, 3),
-(5, 'Anforderungsanalyse erstellen', 'Spezifikation der Hardware-Schnittstellen (Kamera, GPS).','Done', 'High', 3, 2),
-(5, 'Unit Tests schreiben', 'Automatisierte UI-Tests mit Espresso oder XCTest.','To Do', 'Medium', 43, 4),
-(5, 'Kundenfeedback einholen', 'Auswertung der Usability-Tests mit der Zielgruppe.','To Do', 'Low', 3, 2),
-(5, 'Datenmigration', 'Synchronisation lokaler Daten mit dem Cloud-Backend.','In Progress', 'Low', 38, 1),
-(5, 'User Stories definieren', 'Definition von Mobile-First Interaktionsmustern.','To Do', 'Medium', 3, 2),
-(5, 'User Stories definieren', 'Definition von Mobile-First Interaktionsmustern.','In Progress', 'High', 3, 2),
-(5, 'Präsentation vorbereiten', 'Demo der neuen App-Features für die Stakeholder.','Blocked', 'High', 51, 1),
-(5, 'ER-Modell entwerfen', 'Optimierung der lokalen SQLite-Datenbank für Offline-Modus.','To Do', 'High', 51, 3),
-(5, 'Anforderungsanalyse erstellen', 'Spezifikation der Hardware-Schnittstellen (Kamera, GPS).','Done', 'Low', 38, 3),
-(5, 'Performance Tuning', 'Reduzierung der App-Startzeit und Speicheroptimierung.','In Progress', 'Low', 38, 3),
-(6, 'Prototyp entwickeln', 'Aufbau eines verteilten Datenbanksystems zu Testzwecken.','To Do', 'High', 15, 1),
-(6, 'Security Audit', 'Implementierung von Role-Based Access Control (RBAC).','To Do', 'High', 15, 2),
-(6, 'Performance Tuning', 'Analyse von Ausführungsplänen und Index-Optimierung.','Done', 'Low', 47, 2),
-(6, 'CI/CD Pipeline einrichten', 'Automatisierte Schema-Migrationen in der Pipeline.','Done', 'High', 51, 4),
-(6, 'Datenmigration', 'ETL-Prozess zur Überführung von SQL zu NoSQL Daten.','To Do', 'High', 19, 2),
-(6, 'User Stories definieren', 'Szenarien für komplexe Datenabfragen im Big-Data Kontext.','In Progress', 'Low', 73, 2),
-(6, 'API Dokumentation', 'Dokumentation der Stored Procedures und Trigger.','Done', 'Medium', 47, 1),
-(6, 'Sprint Planning', 'Zeitplan für die Implementierung der Sharding-Strategie.','Blocked', 'High', 3, 4),
-(6, 'Datenmigration', 'ETL-Prozess zur Überführung von SQL zu NoSQL Daten.','To Do', 'Medium', 30, 3),
-(6, 'Datenmigration', 'ETL-Prozess zur Überführung von SQL zu NoSQL Daten.','Blocked', 'Low', 30, 1),
-(6, 'Prototyp entwickeln', 'Aufbau eines verteilten Datenbanksystems zu Testzwecken.','Blocked', 'Low', 38, 1),
-(6, 'Prototyp entwickeln', 'Aufbau eines verteilten Datenbanksystems zu Testzwecken.','In Progress', 'High', 73, 3),
-(6, 'User Stories definieren', 'Szenarien für komplexe Datenabfragen im Big-Data Kontext.','In Progress', 'Medium', 47, 4),
-(6, 'Lasttests durchführen', 'Simulation von tausenden gleichzeitigen Schreibzugriffen.','In Progress', 'High', 73, 4),
-(6, 'Performance Tuning', 'Analyse von Ausführungsplänen und Index-Optimierung.','In Progress', 'Low', 15, 1),
-(6, 'Bugfixing', 'Behebung von Deadlocks in hochfrequentierten Tabellen.','To Do', 'Low', 51, 2),
-(6, 'Sprint Planning', 'Zeitplan für die Implementierung der Sharding-Strategie.','Done', 'Low', 30, 4),
-(6, 'Code Review durchführen', 'Prüfung der SQL-Skripte auf Performance-Fallen.','Blocked', 'High', 15, 1),
-(6, 'Code Review durchführen', 'Prüfung der SQL-Skripte auf Performance-Fallen.','To Do', 'Medium', 47, 1),
-(6, 'Frontend Komponenten erstellen', 'Web-Interface zur Visualisierung von Query-Statistiken.','Blocked', 'Medium', 64, 2),
-(6, 'Lasttests durchführen', 'Simulation von tausenden gleichzeitigen Schreibzugriffen.','To Do', 'Low', 12, 4),
-(7, 'Datenmigration', 'Übertragung von Projektdaten aus Altsystemen wie MS Project.','To Do', 'Medium', 34, 3),
-(7, 'Dokumentation verfassen', 'Erstellung des Projektabschlussberichts und Lessons Learned.','Blocked', 'Low', 2, 2),
-(7, 'Code Review durchführen', 'Qualitätssicherung der PM-Tools und Dashboard-Integrationen.','Blocked', 'Low', 59, 2),
-(7, 'Kundenfeedback einholen', 'Durchführung von Review-Meetings mit den Projekt-Sponsoren.','To Do', 'Medium', 16, 2),
-(7, 'Lasttests durchführen', 'Überprüfung der Skalierbarkeit des Projektmanagement-Portals.','In Progress', 'High', 34, 3),
-(7, 'CI/CD Pipeline einrichten', 'Bereitstellung von automatisierten Berichten über Jenkins.','Blocked', 'High', 34, 2),
-(7, 'Kundenfeedback einholen', 'Durchführung von Review-Meetings mit den Projekt-Sponsoren.','Done', 'Medium', 2, 4),
-(7, 'Lasttests durchführen', 'Überprüfung der Skalierbarkeit des Projektmanagement-Portals.','Blocked', 'High', 6, 4),
-(7, 'Performance Tuning', 'Beschleunigung der Gantt-Chart Generierung im Browser.','Done', 'Low', 59, 2),
-(7, 'Kundenfeedback einholen', 'Durchführung von Review-Meetings mit den Projekt-Sponsoren.','Done', 'Medium', 2, 1),
-(7, 'Security Audit', 'Überprüfung der Zugriffsrechte auf vertrauliche Projektdaten.','To Do', 'Medium', 2, 3),
-(7, 'Bugfixing', 'Korrektur von Fehlern in der Ressourcen-Planungsansicht.','Done', 'High', 34, 4),
-(7, 'Unit Tests schreiben', 'Testen der Algorithmen zur kritischen Pfadanalyse.','Blocked', 'High', 6, 2),
-(7, 'Lasttests durchführen', 'Überprüfung der Skalierbarkeit des Projektmanagement-Portals.','Blocked', 'High', 34, 2),
-(7, 'Datenmigration', 'Übertragung von Projektdaten aus Altsystemen wie MS Project.','Blocked', 'Medium', 2, 1),
-(7, 'Kundenfeedback einholen', 'Durchführung von Review-Meetings mit den Projekt-Sponsoren.','To Do', 'Low', 6, 1),
-(7, 'Prototyp entwickeln', 'Mockup eines Tools zur automatisierten Risikoanalyse.','Done', 'Low', 2, 3),
-(7, 'Lasttests durchführen', 'Überprüfung der Skalierbarkeit des Projektmanagement-Portals.','Done', 'Low', 6, 4),
-(7, 'Kundenfeedback einholen', 'Durchführung von Review-Meetings mit den Projekt-Sponsoren.','Blocked', 'Medium', 59, 3),
-(7, 'ER-Modell entwerfen', 'Strukturierung der Metadaten für das Multi-Projekt-Controlling.','Blocked', 'High', 16, 1),
-(7, 'CI/CD Pipeline einrichten', 'Bereitstellung von automatisierten Berichten über Jenkins.','In Progress', 'High', 2, 2),
-(8, 'Prototyp entwickeln', 'Entwicklung eines Proof-of-Concept für ein Intrusion Detection System.','In Progress', 'Medium', 7, 2),
-(8, 'Frontend Komponenten erstellen', 'Dashboard für die Visualisierung von Sicherheitsvorfällen.','In Progress', 'High', 64, 4),
-(8, 'Sprint Planning', 'Planung der nächsten Penetration-Testing Phase.','In Progress', 'Low', 27, 4),
-(8, 'Bugfixing', 'Schließen von Sicherheitslücken nach einem Vulnerability Scan.','Done', 'Low', 1, 4),
-(8, 'CI/CD Pipeline einrichten', 'Integration von statischer Code-Analyse (SAST) in die Build-Kette.','Blocked', 'Low', 1, 1),
-(8, 'Bugfixing', 'Schließen von Sicherheitslücken nach einem Vulnerability Scan.','Done', 'Medium', 27, 1),
-(8, 'API Dokumentation', 'Beschreibung der Sicherheitsschnittstellen für OAuth2/OIDC.','In Progress', 'High', 64, 2),
-(8, 'Anforderungsanalyse erstellen', 'Definition der Sicherheitsrichtlinien nach ISO 27001.','Done', 'Medium', 7, 1),
-(8, 'Prototyp entwickeln', 'Entwicklung eines Proof-of-Concept für ein Intrusion Detection System.','To Do', 'Low', 64, 4),
-(8, 'User Stories definieren', 'Szenarien für die Reaktion auf Sicherheitsvorfälle (Incident Response).','To Do', 'Medium', 17, 2),
-(8, 'Performance Tuning', 'Optimierung der Verschlüsselungsalgorithmen für Echtzeitdaten.','Blocked', 'Medium', 1, 4),
-(8, 'Deployment vorbereiten', 'Sichere Konfiguration der Produktionsserver (Hardening).','Blocked', 'Low', 1, 1),
-(8, 'Meeting Protokoll', 'Dokumentation der Ergebnisse des Risk-Assessment Workshops.','Blocked', 'High', 1, 1),
-(8, 'Kundenfeedback einholen', 'Review der Sicherheitsfeatures mit den Datenschutzbeauftragten.','In Progress', 'Low', 7, 2),
-(8, 'Security Audit', 'Umfassender Penetrationstest der gesamten Systemlandschaft.','Blocked', 'High', 7, 2),
-(8, 'Kundenfeedback einholen', 'Review der Sicherheitsfeatures mit den Datenschutzbeauftragten.','Done', 'High', 7, 1),
-(8, 'CI/CD Pipeline einrichten', 'Integration von statischer Code-Analyse (SAST) in die Build-Kette.','To Do', 'High', 64, 1),
-(8, 'Code Review durchführen', 'Review kritischer Codeabschnitte auf Injection-Gefahren.','In Progress', 'Medium', 17, 3),
-(8, 'Code Review durchführen', 'Review kritischer Codeabschnitte auf Injection-Gefahren.','In Progress', 'Medium', 17, 3),
-(8, 'Deployment vorbereiten', 'Sichere Konfiguration der Produktionsserver (Hardening).','Done', 'High', 7, 3),
-(8, 'Datenmigration', 'Verschlüsselte Übertragung sensibler Nutzerdaten in neue Datenbanken.','In Progress', 'Medium', 7, 1),
-(9, 'Sprint Planning', 'Agile Planung der nächsten Web-Sprints mit Jira.','Blocked', 'Low', 37, 3),
-(9, 'Sprint Planning', 'Agile Planung der nächsten Web-Sprints mit Jira.','Blocked', 'Medium', 26, 1),
-(9, 'Präsentation vorbereiten', 'Demo der neuen Web-Features vor dem Produktmanagement.','To Do', 'High', 4, 2),
-(9, 'Präsentation vorbereiten', 'Demo der neuen Web-Features vor dem Produktmanagement.','To Do', 'High', 4, 1),
-(9, 'Deployment vorbereiten', 'Konfiguration von Vercel/Netlify für automatisches Deployment.','To Do', 'Medium', 32, 1),
-(9, 'Security Audit', 'Prüfung auf Cross-Site Scripting (XSS) Schwachstellen.','Blocked', 'Low', 32, 3),
-(9, 'Anforderungsanalyse erstellen', 'Spezifikation der REST- und GraphQL-Schnittstellen.','Done', 'Medium', 14, 1),
-(9, 'ER-Modell entwerfen', 'Modellierung der relationalen Daten für das Web-Portal.','Done', 'Medium', 26, 2),
-(9, 'Präsentation vorbereiten', 'Demo der neuen Web-Features vor dem Produktmanagement.','Done', 'Low', 14, 4),
-(9, 'Unit Tests schreiben', 'End-to-End Tests mit Cypress oder Playwright.','In Progress', 'Medium', 26, 4),
-(9, 'API Dokumentation', 'Swagger-Dokumentation für die öffentliche Web-API.','In Progress', 'High', 32, 1),
-(9, 'Security Audit', 'Prüfung auf Cross-Site Scripting (XSS) Schwachstellen.','Blocked', 'Low', 2, 2),
-(9, 'ER-Modell entwerfen', 'Modellierung der relationalen Daten für das Web-Portal.','Done', 'Low', 26, 1),
-(9, 'Prototyp entwickeln', 'Entwurf einer Single-Page-Application (SPA) mit React.','To Do', 'Low', 26, 1),
-(9, 'Deployment vorbereiten', 'Konfiguration von Vercel/Netlify für automatisches Deployment.','In Progress', 'Medium', 26, 3),
-(9, 'Lasttests durchführen', 'Messung der Time-to-First-Byte unter hoher Auslastung.','To Do', 'Low', 37, 4),
-(9, 'Präsentation vorbereiten', 'Demo der neuen Web-Features vor dem Produktmanagement.','Done', 'High', 2, 1),
-(9, 'Refactoring', 'Modularisierung des CSS mittels CSS-Modules oder Tailwind.','Done', 'Low', 32, 3),
-(9, 'User Stories definieren', 'Definition der User Journey im Web-Interface.','In Progress', 'High', 32, 4),
-(9, 'Deployment vorbereiten', 'Konfiguration von Vercel/Netlify für automatisches Deployment.','Blocked', 'Medium', 32, 2),
-(9, 'Security Audit', 'Prüfung auf Cross-Site Scripting (XSS) Schwachstellen.','Blocked', 'Medium', 4, 2),
-(10, 'Bugfixing', 'Fehlerbehebung in den Modulen für Materialwirtschaft.','Done', 'High', 1, 1),
-(10, 'Dokumentation verfassen', 'Handbuch für die Konfiguration der Geschäftsprozesse in SAP.','Done', 'High', 44, 4),
-(10, 'Frontend Komponenten erstellen', 'Benutzerdefinierte Eingabemasken für die Lagerverwaltung.','To Do', 'High', 70, 1),
-(10, 'Dokumentation verfassen', 'Handbuch für die Konfiguration der Geschäftsprozesse in SAP.','To Do', 'Low', 44, 4),
-(10, 'Bugfixing', 'Fehlerbehebung in den Modulen für Materialwirtschaft.','To Do', 'Medium', 1, 3),
-(10, 'User Stories definieren', 'Anwendungsfälle für die automatisierte Rechnungsprüfung.','To Do', 'Low', 44, 1),
-(10, 'ER-Modell entwerfen', 'Anpassung des Datenmodells für internationale Standorte.','Blocked', 'High', 44, 1),
-(10, 'API Dokumentation', 'Schnittstellenbeschreibung für die Anbindung an Drittsysteme.','In Progress', 'Low', 2, 2),
-(10, 'Lasttests durchführen', 'Validierung der Performance bei Monatsabschluss-Läufen.','Done', 'Low', 44, 4),
-(10, 'API Dokumentation', 'Schnittstellenbeschreibung für die Anbindung an Drittsysteme.','Blocked', 'Low', 1, 4),
-(10, 'Präsentation vorbereiten', 'Vorstellung der ERP-Einführungsstrategie beim Lenkungsausschuss.','Done', 'High', 2, 3),
-(10, 'Security Audit', 'Prüfung der Berechtigungskonzepte im ERP-System.','In Progress', 'High', 2, 4),
-(10, 'API Dokumentation', 'Schnittstellenbeschreibung für die Anbindung an Drittsysteme.','Blocked', 'High', 1, 1),
-(10, 'Meeting Protokoll', 'Protokollierung der Anforderungen aus dem Fachbereich Produktion.','Done', 'High', 62, 2),
-(10, 'CI/CD Pipeline einrichten', 'Automatisierung von Transportaufträgen in die Testumgebung.','To Do', 'Low', 62, 2),
-(10, 'Deployment vorbereiten', 'Vorbereitung des Go-Live für das neue Finanzmodul.','To Do', 'Medium', 44, 3),
-(10, 'Prototyp entwickeln', 'Pilot-Implementierung eines CRM-Moduls im ERP-Umfeld.','Done', 'Low', 70, 4),
-(10, 'Dokumentation verfassen', 'Handbuch für die Konfiguration der Geschäftsprozesse in SAP.','To Do', 'High', 62, 2),
-(10, 'Präsentation vorbereiten', 'Vorstellung der ERP-Einführungsstrategie beim Lenkungsausschuss.','Done', 'Low', 62, 1),
-(10, 'Sprint Planning', 'Ressourcenplanung für das nächste Release-Upgrade.','To Do', 'Low', 70, 3),
-(10, 'Dokumentation verfassen', 'Handbuch für die Konfiguration der Geschäftsprozesse in SAP.','Done', 'Low', 62, 3),
-(11, 'Refactoring', 'Strukturierung der Daten-Pipelines für das Modell-Training.','To Do', 'High', 13, 1),
-(11, 'Performance Tuning', 'Beschleunigung der Inferenzzeiten durch Modell-Quantisierung.','In Progress', 'Low', 2, 1),
-(11, 'User Stories definieren', 'Anwendungsfälle für KI-basierte Vorhersagesysteme.','Blocked', 'High', 6, 3),
-(11, 'Code Review durchführen', 'Prüfung der Python-Skripte auf effiziente Matrix-Operationen.','To Do', 'High', 2, 3),
-(11, 'Code Review durchführen', 'Prüfung der Python-Skripte auf effiziente Matrix-Operationen.','To Do', 'High', 21, 3),
-(11, 'Bugfixing', 'Behebung von Overfitting-Problemen im Trainingsdatensatz.','Done', 'High', 2, 2),
-(11, 'Code Review durchführen', 'Prüfung der Python-Skripte auf effiziente Matrix-Operationen.','To Do', 'Medium', 23, 4),
-(11, 'Präsentation vorbereiten', 'Visualisierung der Genauigkeitsmetriken des Modells.','To Do', 'Medium', 25, 3),
-(11, 'ER-Modell entwerfen', 'Speicherung von Feature-Vektoren in einer Vektordatenbank.','To Do', 'Medium', 6, 2),
-(11, 'Lasttests durchführen', 'Messung der Antwortzeiten des KI-Modells unter Last.','Done', 'High', 2, 4),
-(11, 'Lasttests durchführen', 'Messung der Antwortzeiten des KI-Modells unter Last.','Done', 'Medium', 21, 1),
-(11, 'Datenmigration', 'Aufbereitung und Bereinigung großer Datenmengen für das Training.','Blocked', 'Low', 23, 3),
-(11, 'Refactoring', 'Strukturierung der Daten-Pipelines für das Modell-Training.','To Do', 'High', 13, 4),
-(11, 'Anforderungsanalyse erstellen', 'Festlegung der KPI für die Modell-Performance.','Done', 'Medium', 21, 1),
-(11, 'User Stories definieren', 'Anwendungsfälle für KI-basierte Vorhersagesysteme.','Done', 'Medium', 13, 3),
-(11, 'Code Review durchführen', 'Prüfung der Python-Skripte auf effiziente Matrix-Operationen.','Done', 'High', 23, 3),
-(11, 'Code Review durchführen', 'Prüfung der Python-Skripte auf effiziente Matrix-Operationen.','To Do', 'High', 13, 4),
-(11, 'Code Review durchführen', 'Prüfung der Python-Skripte auf effiziente Matrix-Operationen.','Blocked', 'Medium', 6, 1),
-(11, 'Präsentation vorbereiten', 'Visualisierung der Genauigkeitsmetriken des Modells.','Blocked', 'Low', 25, 3),
-(11, 'Security Audit', 'Schutz des Modells gegen Adversarial Attacks.','In Progress', 'Medium', 13, 4),
-(11, 'Bugfixing', 'Behebung von Overfitting-Problemen im Trainingsdatensatz.','Done', 'Medium', 21, 4),
-(12, 'Security Audit', 'Überprüfung der Prozess-Compliance hinsichtlich DSGVO.','Blocked', 'Medium', 24, 3),
-(12, 'Bugfixing', 'Korrektur von Logikfehlern in den automatisierten Workflows.','In Progress', 'Low', 15, 2),
-(12, 'ER-Modell entwerfen', 'Modellierung der Prozessinstanzen und Statushistorie.','Done', 'Low', 50, 1),
-(12, 'Datenmigration', 'Überführung von Prozessdaten in eine Process Mining Software.','Blocked', 'Medium', 15, 1),
-(12, 'Präsentation vorbereiten', 'Vorstellung der optimierten Soll-Prozesse.','To Do', 'Low', 3, 3),
-(12, 'ER-Modell entwerfen', 'Modellierung der Prozessinstanzen und Statushistorie.','Done', 'High', 38, 2),
-(12, 'Performance Tuning', 'Reduzierung der Durchlaufzeiten kritischer Geschäftsprozesse.','In Progress', 'Low', 15, 1),
-(12, 'Kundenfeedback einholen', 'Interview mit Fachexperten zur Validierung der Ist-Modelle.','Blocked', 'Low', 3, 1),
-(12, 'Datenmigration', 'Überführung von Prozessdaten in eine Process Mining Software.','Blocked', 'Low', 24, 2),
-(12, 'User Stories definieren', 'Definition der Nutzerrollen innerhalb der Prozesskette.','Blocked', 'Medium', 15, 3),
-(12, 'Sprint Planning', 'Planung der nächsten Iteration zur Prozess-Digitalisierung.','Done', 'High', 50, 3),
-(12, 'Präsentation vorbereiten', 'Vorstellung der optimierten Soll-Prozesse.','In Progress', 'High', 38, 2),
-(12, 'User Stories definieren', 'Definition der Nutzerrollen innerhalb der Prozesskette.','Done', 'Medium', 38, 3),
-(12, 'User Stories definieren', 'Definition der Nutzerrollen innerhalb der Prozesskette.','Blocked', 'Low', 38, 1),
-(12, 'Unit Tests schreiben', 'Validierung der Entscheidungstabellen und Business Rules.','To Do', 'Medium', 3, 1),
-(12, 'Refactoring', 'Vereinfachung komplexer BPMN-Diagramme.','To Do', 'Medium', 15, 1),
-(12, 'Sprint Planning', 'Planung der nächsten Iteration zur Prozess-Digitalisierung.','Blocked', 'High', 38, 4),
-(12, 'Dokumentation verfassen', 'Prozessbeschreibungen für das Qualitätsmanagement.','Done', 'Low', 38, 4),
-(12, 'Datenmigration', 'Überführung von Prozessdaten in eine Process Mining Software.','In Progress', 'Medium', 24, 4),
-(12, 'Lasttests durchführen', 'Simulation hoher Prozessdurchläufe in der Engine.','In Progress', 'High', 15, 1),
-(12, 'Prototyp entwickeln', 'Entwurf einer Low-Code Anwendung zur Prozesssteuerung.','To Do', 'High', 50, 4);
+(1, 'Datenbank aufsetzen', 'Entwurf und Implementierung des relationalen Datenmodells in MySQL.', 'Done', 'High', 'usr_7d2e5f9a1c3b8e4f', 'usr_3f8a1c2e9b4d7f1a'),
+(1, 'Backend API implementieren', 'Entwicklung der REST-Endpunkte mit Express.js und Validierung.', 'In Progress', 'High', 'usr_7d2e5f9a1c3b8e4f', 'usr_3f8a1c2e9b4d7f1a'),
+(1, 'Dockerisierung', 'Erstellung von Dockerfiles fuer Frontend und Backend.', 'To Do', 'Medium', 'usr_8c1d4e7a2b9f5c6d', 'usr_3f8a1c2e9b4d7f1a'),
+(1, 'Load Balancer konfigurieren', 'Einrichtung von Nginx als Reverse Proxy zur Lastverteilung.', 'To Do', 'Medium', 'usr_3f8a1c2e9b4d7f1a', 'usr_3f8a1c2e9b4d7f1a');
 
--- ====================================================================
--- TRIGGER: Projektmitglied-Löschung
--- Wenn ein User aus einem Projekt gelöscht wird, werden alle Tasks
--- wo er der Bearbeiter war auf NULL gesetzt
--- ====================================================================
-
-DELIMITER $$
-
-DROP TRIGGER IF EXISTS trigger_delete_project_member$$
-
-CREATE TRIGGER trigger_delete_project_member
-AFTER DELETE ON project_members
-FOR EACH ROW
-BEGIN
-    UPDATE tasks
-    SET assigned_to = NULL
-    WHERE project_id = OLD.project_id
-    AND assigned_to = OLD.user_id;
-END$$
-
-DELIMITER ;
+-- Aufgaben fuer Projekt 2
+INSERT INTO tasks (project_id, title, description, status, priority, assigned_to, created_by) VALUES
+(2, 'Landing Page erstellen', 'Entwicklung einer responsiven Startseite mit modernem UI/UX-Design.', 'In Progress', 'Medium', 'usr_8c1d4e7a2b9f5c6d', 'usr_3f8a1c2e9b4d7f1a'),
+(2, 'Login Komponente bauen', 'Implementierung eines sicheren Login-Flows.', 'Done', 'High', 'usr_8c1d4e7a2b9f5c6d', 'usr_3f8a1c2e9b4d7f1a'),
+(2, 'Responsive Design', 'Anpassung der Layouts fuer mobile Endgeraete und Tablets.', 'To Do', 'Medium', 'usr_4a9e2b7c5d1f6e3a', 'usr_3f8a1c2e9b4d7f1a');

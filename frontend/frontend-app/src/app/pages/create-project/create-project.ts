@@ -6,7 +6,7 @@ import { Router } from '@angular/router';
 import { getSessionStorage } from '../../utils/storage';
 
 type UserSuggestion = {
-  user_id: number;
+  user_id: string;
   email: string;
 };
 
@@ -154,9 +154,8 @@ export class CreateProject {
   // Erstellt Projekt mit Mitgliedern und navigiert zum Dashboard
   onSubmit(): void {
     const createdByRaw = getSessionStorage()?.getItem('userId');
-    const createdBy = Number(createdByRaw);
-
-    if (!createdByRaw || !Number.isInteger(createdBy) || createdBy <= 0) {
+    const createdBy = String(createdByRaw || '').trim();
+    if (!createdBy) {
       alert('Bitte zuerst einloggen.');
       return;
     }

@@ -7,7 +7,7 @@ export type TaskCardData = {
   title: string;
   status: 'To Do' | 'In Progress' | 'Done' | 'Blocked';
   assigned_to_email?: string | null;
-  assigned_to_id?: number | null;
+  assigned_to_id?: string | null;
   deadline?: string | null;
 };
 

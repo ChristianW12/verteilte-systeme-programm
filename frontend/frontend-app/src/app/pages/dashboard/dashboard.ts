@@ -10,7 +10,7 @@ import { RealtimeService } from '../../shared/services/realtime';
 type ProjectRole = 'Developer' | 'Admin' | 'Viewer';
 
 type ProjectMemberApiItem = {
-  user_id: number;
+  user_id: string;
   username: string;
   email: string;
   role?: ProjectRole;
@@ -21,13 +21,13 @@ type ProjectApiItem = {
   name: string;
   description: string;
   created_by: string;
-  admin_id: number;
+  admin_id: string;
   role?: ProjectRole;
   members?: ProjectMemberApiItem[];
 };
 
 type GetProjectsResponse = {
-  userId: number;
+  userId: string;
   projects: ProjectApiItem[];
 };
 
@@ -38,7 +38,7 @@ type TaskApiItem = {
   status: 'To Do' | 'In Progress' | 'Done' | 'Blocked';
   assigned_to_email?: string | null;
   assigned_to?: string | null;
-  assigned_to_id?: number | null;
+  assigned_to_id?: string | null;
   deadline?: string | null;
 };
 
@@ -77,7 +77,7 @@ export class Dashboard implements OnInit {
   doneTasks = computed(() => this.getFilteredTasks().filter((task) => task.status === 'Done'));
   blockedTasks = computed(() => this.getFilteredTasks().filter((task) => task.status === 'Blocked'));
 
-  private userIdResponse = signal<number | null>(null);
+  private userIdResponse = signal<string | null>(null);
 
   // Verwaltet Lock-Events und Realtime-Refresh
   constructor() {
@@ -115,7 +115,7 @@ export class Dashboard implements OnInit {
   private getFilteredTasks(): TaskCardData[] {
     const allTasks = this.tasks();
     if (!this.showOnlyMyTasks() || !this.canShowMyTasksForSelectedProject()) return allTasks;
-    const currentUserId = Number(this.userId);
+    const currentUserId = String(this.userId || '');
     return allTasks.filter((task) => task.assigned_to_id === currentUserId);
   }
 
@@ -156,7 +156,7 @@ export class Dashboard implements OnInit {
 
   // Überprüft, ob der aktuelle Benutzer Admin des Projekts ist um es zu bearbeiten
   canUserEditProject(project: ProjectCardData): boolean {
-    return Number(project.admin_id) === Number(this.userId);
+    return String(project.admin_id || '') === String(this.userId || '');
   }
 
   // Überprüft, ob "Meine Tasks" Filter angezeigt werden soll (nur für Admins und Developer)
@@ -230,7 +230,7 @@ export class Dashboard implements OnInit {
     // Lock beim Backend anfragen
     this.http.post('/api/tasks/lock/acquire', {
       task_id: task.task_id,
-      user_id: Number(this.userId),
+      user_id: this.userId,
       user_email: this.userEmail
     }).subscribe({
       error: (err) => {
@@ -248,11 +248,11 @@ export class Dashboard implements OnInit {
     const release = () => {
       this.http.post('/api/tasks/lock/release', {
         task_id: task.task_id,
-        user_id: Number(userId)
+        user_id: userId
       }).subscribe();
     };
 
-    const userId = Number(this.userId);
+    const userId = String(this.userId || '').trim();
 
     // Wenn am gleichen Ort abgelegt -> Lock sofort freigeben
     if (event.previousContainer === event.container) {

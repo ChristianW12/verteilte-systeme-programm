@@ -13,7 +13,7 @@ Chart.register(ArcElement, Tooltip, Legend, PieController);
 type ProjectRole = 'Developer' | 'Admin' | 'Viewer';
 
 type ProjectMemberApiItem = {
-  user_id: number;
+  user_id: string;
   username: string;
   email: string;
   role?: ProjectRole;
@@ -24,13 +24,13 @@ type ProjectApiItem = {
   name: string;
   description: string;
   created_by: string;
-  admin_id: number;
+  admin_id: string;
   role?: ProjectRole;
   members?: ProjectMemberApiItem[];
 };
 
 type GetProjectsResponse = {
-  userId: number;
+  userId: string;
   projects: ProjectApiItem[];
 };
 

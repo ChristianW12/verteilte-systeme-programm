@@ -8,7 +8,7 @@ import { getSessionStorage } from '../../utils/storage';
 type LoginResponse = {
   message: string;
   user?: {
-    id?: number;
+    id?: string;
     email?: string;
   };
 };
@@ -77,5 +77,4 @@ export class Login {
       });
   }
 }
-
 

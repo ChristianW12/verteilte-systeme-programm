@@ -3,8 +3,16 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../db");
+const bcrypt = require("bcryptjs");
+const { randomBytes } = require("crypto");
 
-// Login mit E-Mail + Passwort (plaintext - nicht sicher!)
+const BCRYPT_ROUNDS = 10;
+
+function createRandomUserId() {
+  return `usr_${randomBytes(12).toString("hex")}`;
+}
+
+// Login mit E-Mail + Passwort (bcrypt-Hashvergleich)
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -26,7 +34,8 @@ router.post("/login", async (req, res) => {
 
     const user = rows[0];
 
-    if (user.password !== password) {
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    if (!passwordMatches) {
       return res.status(401).json({ message: "E-Mail oder Passwort falsch" });
     }
 
@@ -88,9 +97,11 @@ router.post("/signup", async (req, res) => {
         .json({ message: "E-Mail ist bereits registriert" });
     }
     // nach erfolgreicher Abfrage wird der neue Benutzer in die Datenbank eingefügt
+    const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+    const userId = createRandomUserId();
     await db.execute(
-      "INSERT INTO users (username, email, password) VALUES (?, ?, ?)",
-      [username, email, password],
+      "INSERT INTO users (user_id, username, email, password) VALUES (?, ?, ?, ?)",
+      [userId, username, email, passwordHash],
     );
 
     res.status(201).json({ message: "Registrierung erfolgreich" });
@@ -110,7 +121,7 @@ router.post('/profile', async (req, res) => {
 
   try {
     const [rows] = await db.execute(
-      "SELECT user_id, username, email, created_at, password FROM users WHERE user_id = ?",
+      "SELECT user_id, username, email, created_at FROM users WHERE user_id = ?",
       [userId],
     );
 
@@ -126,7 +137,6 @@ router.post('/profile', async (req, res) => {
         username: user.username,
         email: user.email,
         createdAt: user.created_at,
-        password: user.password,
       },
     });
   } catch (error) {
@@ -150,9 +160,10 @@ router.post('/profile/update', async (req, res) => {
     }
 
     if (neuesPassword) {
+      const passwordHash = await bcrypt.hash(neuesPassword, BCRYPT_ROUNDS);
       await db.execute(
         'UPDATE users SET username = ?, email = ?, password = ? WHERE user_id = ?',
-        [username, email, neuesPassword, userId]
+        [username, email, passwordHash, userId]
       );
     } else {
       await db.execute(
