@@ -7,7 +7,6 @@ import { Profile } from './pages/profile/profile';
 import { DetailedTask } from './pages/detailed-task/detailed-task';
 import { authGuard } from './auth.guard';
 import { Signup } from './pages/signup/signup';
-import { Project } from './pages/project/project';
 import { CreateProject } from './pages/create-project/create-project';
 import { EditProject } from './pages/edit-project/edit-project';
 import { EditProfile } from './pages/edit-profile/edit-profile';
@@ -21,7 +20,6 @@ export const routes: Routes = [
   { path: 'signup', component: Signup },
   { path: 'task/create', component: CreateTask, canActivate: [authGuard] },
   { path: 'task/:id', component: DetailedTask, canActivate: [authGuard] },
-  { path: 'project', component: Project, canActivate: [authGuard] },
   {path: 'project/create', component: CreateProject, canActivate: [authGuard]},
   {path: 'project/edit/:projectId', component: EditProject, canActivate: [authGuard]},
   { path: 'statistics', component: Statistics, canActivate: [authGuard] },
