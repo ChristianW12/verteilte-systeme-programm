@@ -50,6 +50,7 @@ export class CreateProject {
   private http = inject(HttpClient);
   private router = inject(Router);
 
+  // Fügt ein neues Mitgliedsfeld hinzu
   addMemberField(): void {
     this.memberFields.push({
       email: '',
@@ -60,6 +61,7 @@ export class CreateProject {
     });
   }
 
+  // Entfernt ein Mitgliedsfeld, stellt sicher, dass mindestens eines vorhanden bleibt
   removeMemberField(index: number): void {
     const field = this.memberFields[index];
     if (field?.debounceTimer) {
@@ -110,6 +112,7 @@ export class CreateProject {
     }, 350);
   }
 
+  // Zeigt Vorschläge beim Fokussieren des E-Mail-Felds, falls vorhanden
   onMemberFocus(index: number): void {
     const field = this.memberFields[index];
     if (!field) {
@@ -119,6 +122,7 @@ export class CreateProject {
     field.showSuggestions = field.suggestions.length > 0;
   }
 
+  // Versteckt Vorschläge beim Verlassen des E-Mail-Felds
   onMemberBlur(index: number): void {
     const field = this.memberFields[index];
     if (!field) {
@@ -130,6 +134,7 @@ export class CreateProject {
     }, 100);
   }
 
+  // Setzt die E-Mail des Mitgliedsfelds auf den ausgewählten Vorschlag und versteckt die Vorschläge
   selectSuggestion(index: number, suggestion: UserSuggestion): void {
     const field = this.memberFields[index];
     if (!field) {

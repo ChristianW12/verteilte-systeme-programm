@@ -65,7 +65,7 @@ export class Dashboard implements OnInit {
   selectedProjectId = signal<number | null>(null);
   selectedProjectName = signal<string>('Kein Projekt ausgewaehlt');
   tasks = signal<TaskCardData[]>([]);
-  
+
   taskLocks = signal<Map<number, string>>(new Map());
 
   selectedProject = computed(() => this.projects().find((project) => project.project_id === this.selectedProjectId()) ?? null);
@@ -154,19 +154,23 @@ export class Dashboard implements OnInit {
     });
   }
 
+  // Überprüft, ob der aktuelle Benutzer Admin des Projekts ist um es zu bearbeiten
   canUserEditProject(project: ProjectCardData): boolean {
     return Number(project.admin_id) === Number(this.userId);
   }
 
+  // Überprüft, ob "Meine Tasks" Filter angezeigt werden soll (nur für Admins und Developer)
   canShowMyTasksForSelectedProject(): boolean {
     const project = this.selectedProject();
     return project?.role === 'Admin' || project?.role === 'Developer';
   }
 
+  // Toggle für "Nur meine Tasks" Filter
   toggleMyTasksFilter(): void {
     this.showOnlyMyTasks.update((current) => !current);
   }
 
+  // Setzt ausgewähltes Projekt und lädt zugehörige Tasks
   selectProject(project: ProjectCardData): void {
     this.selectedProjectId.set(project.project_id);
     this.selectedProjectName.set(project.name);
@@ -176,6 +180,7 @@ export class Dashboard implements OnInit {
     this.loadTasksForProject(project.project_id);
   }
 
+  // Lädt alle aktiven Locks vom Backend und speichert sie in einem Map
   private loadActiveLocks(): void {
     this.http.get<{ locks: { [taskId: string]: string } }>('/api/tasks/lock/all').subscribe({
       next: (response) => {
@@ -189,6 +194,7 @@ export class Dashboard implements OnInit {
     });
   }
 
+  // Lädt Tasks für das ausgewählte Projekt
   private loadTasksForProject(projectId: number): void {
     this.http.get<GetTasksResponse>(`/api/tasks/project/${projectId}`).subscribe({
       next: (response) => {
@@ -213,10 +219,10 @@ export class Dashboard implements OnInit {
   // Sperrt Task beim Start des Drag-and-Drop
   dragStarted(event: CdkDragStart): void {
     const task = event.source.data as TaskCardData;
-    
+
     // Verhindern, dass Dragger gestartet wird, wenn bereits gelockt
     if (this.taskLocks().has(task.task_id)) {
-      event.source._dragRef.reset(); 
+      event.source._dragRef.reset();
       alert(`Diese Task wird gerade von ${this.taskLocks().get(task.task_id)} bearbeitet.`);
       return;
     }

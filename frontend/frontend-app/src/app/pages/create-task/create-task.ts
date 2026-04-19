@@ -108,6 +108,7 @@ export class CreateTask implements OnInit {
     });
   }
 
+
   updateProjectId(newProjectId: string): void {
     this.projectId = newProjectId;
     this.selectedProjectId.set(newProjectId);
