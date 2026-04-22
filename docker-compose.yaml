@@ -49,6 +49,7 @@ services:
       DB_PASSWORD: apppass
       DB_NAME: appdb
       REDIS_HOST: redis
+      JWT_SECRET: dev-only-change-this-jwt-secret-32chars-min
     depends_on:
       database:
         condition: service_healthy
@@ -70,6 +71,7 @@ services:
       DB_PASSWORD: apppass
       DB_NAME: appdb
       REDIS_HOST: redis
+      JWT_SECRET: dev-only-change-this-jwt-secret-32chars-min
     depends_on:
       database:
         condition: service_healthy
@@ -91,6 +93,7 @@ services:
       DB_PASSWORD: apppass
       DB_NAME: appdb
       REDIS_HOST: redis
+      JWT_SECRET: dev-only-change-this-jwt-secret-32chars-min
     depends_on:
       database:
         condition: service_healthy

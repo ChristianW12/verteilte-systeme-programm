@@ -37,22 +37,23 @@ router.get("/lock/all", async (req, res) => {
 
 // Sperrt Task für exklusiven Zugriff, gibt 423 zurück wenn bereits gesperrt
 router.post("/lock/acquire", async (req, res) => {
-  const { task_id, user_id, user_email } = req.body;
+  const { task_id } = req.body;
   const taskId = Number(task_id);
-  const userId = String(user_id || "").trim();
+  const userId = String(req.auth?.userId || "").trim();
+  const userEmail = String(req.auth?.email || "").trim();
 
-  if (!taskId || !userId || !user_email) {
+  if (!taskId || !userId || !userEmail) {
     return res.status(400).json({ message: "Fehlende Parameter für Lock" });
   }
 
   try {
     const redis = await getClient();
     const lockKey = `lock:task:${taskId}`;
-    const lockData = JSON.stringify({ userId, userEmail: user_email, at: Date.now() });
+    const lockData = JSON.stringify({ userId, userEmail, at: Date.now() });
     const success = await redis.set(lockKey, lockData, { NX: true, EX: LOCK_TTL });
 
     if (success) {
-      await publishEvent("task.locked", { taskId, userEmail: user_email, userId });
+      await publishEvent("task.locked", { taskId, userEmail, userId });
       return res.status(200).json({ message: "Lock erfolgreich erworben" });
     } else {
       const currentLockRaw = await redis.get(lockKey);
@@ -77,9 +78,9 @@ router.post("/lock/acquire", async (req, res) => {
 
 // Verlängert Lock-TTL
 router.post("/lock/heartbeat", async (req, res) => {
-  const { task_id, user_id } = req.body;
+  const { task_id } = req.body;
   const taskId = Number(task_id);
-  const userId = String(user_id || "").trim();
+  const userId = String(req.auth?.userId || "").trim();
 
   try {
     const redis = await getClient();
@@ -100,9 +101,9 @@ router.post("/lock/heartbeat", async (req, res) => {
 
 // Gibt Lock frei
 router.post("/lock/release", async (req, res) => {
-  const { task_id, user_id } = req.body;
+  const { task_id } = req.body;
   const taskId = Number(task_id);
-  const userId = String(user_id || "").trim();
+  const userId = String(req.auth?.userId || "").trim();
 
   try {
     const redis = await getClient();
@@ -168,18 +169,17 @@ router.post("/create", async (req, res) => {
     status,
     priority,
     deadline,
-    created_by,
     assigned_to,
   } = req.body;
 
-  if (!project_id || !title || !created_by) {
+  if (!project_id || !title) {
     return res.status(400).json({
-      message: "project_id, title und created_by sind erforderlich",
+      message: "project_id und title sind erforderlich",
     });
   }
 
   const projectId = Number(project_id);
-  const createdBy = String(created_by || "").trim();
+  const createdBy = String(req.auth?.userId || "").trim();
   const cleanTitle = String(title).trim();
   const cleanDescription = description ? String(description).trim() : null;
   const taskStatus = status || "To Do";
@@ -193,7 +193,7 @@ router.post("/create", async (req, res) => {
     !createdBy
   ) {
     return res.status(400).json({
-      message: "project_id und created_by muessen gueltig sein",
+      message: "project_id muss gueltig sein",
     });
   }
 
@@ -303,9 +303,9 @@ router.post("/create", async (req, res) => {
 
 // Löscht Task (nur Admin/Assignee)
 router.post("/delete", async (req, res) => {
-  const { task_id, user_id } = req.body;
+  const { task_id } = req.body;
   const taskId = Number(task_id);
-  const userId = String(user_id || "").trim();
+  const userId = String(req.auth?.userId || "").trim();
 
   if (!Number.isInteger(taskId) || taskId <= 0 || !userId) {
     return res.status(400).json({ message: "Ungueltige Parameter" });
@@ -329,7 +329,6 @@ router.post("/delete", async (req, res) => {
 router.post("/edit", async (req, res) => {
   const {
     task_id,
-    user_id,
     title,
     description,
     status,
@@ -339,7 +338,7 @@ router.post("/edit", async (req, res) => {
   } = req.body;
 
   const taskId = Number(task_id);
-  const userId = String(user_id || "").trim();
+  const userId = String(req.auth?.userId || "").trim();
 
   if (!Number.isInteger(taskId) || taskId <= 0 || !userId) {
     return res.status(400).json({ message: "Ungueltige Parameter" });
@@ -386,9 +385,9 @@ router.post("/edit", async (req, res) => {
 
 // Spezifischer Endpoint für Status-Update + Lock-Freigabe
 router.post("/edit/updateStatus", async (req, res) => {
-  const { task_id, user_id, status } = req.body;
+  const { task_id, status } = req.body;
   const taskId = Number(task_id);
-  const userId = String(user_id || "").trim();
+  const userId = String(req.auth?.userId || "").trim();
 
   try {
     const permissions = await getTaskPermissionContext(taskId, userId);
@@ -424,7 +423,7 @@ router.post("/edit/updateStatus", async (req, res) => {
 // Ruft Task-Details ab
 router.get("/:id", async (req, res) => {
   const taskId = Number(req.params.id);
-  const userId = String(req.query.user_id || "").trim();
+  const userId = String(req.auth?.userId || "").trim();
 
   if (!Number.isInteger(taskId) || taskId <= 0) {
     return res.status(400).json({ message: "Ungueltige Task-ID" });
@@ -490,10 +489,9 @@ router.get("/project/:projectId", async (req, res) => {
 });
 
 router.post("/get", async (req, res) => {
-  const { user_id } = req.body;
-  const userId = String(user_id || "").trim();
+  const userId = String(req.auth?.userId || "").trim();
   if (!userId) {
-    return res.status(400).json({ message: "user_id ist erforderlich" });
+    return res.status(400).json({ message: "Session ungueltig" });
   }
   try {
     const [projects] = await db.execute(
@@ -509,8 +507,8 @@ router.post("/get", async (req, res) => {
 // Ruft alle möglichen Assignees für eine Task ab
 router.get("/:id/assignees", async (req, res) => {
   const taskId = Number(req.params.id);
-  const userId = String(req.query.user_id || "").trim();
-  if (!userId) return res.status(400).json({ message: "user_id ist erforderlich" });
+  const userId = String(req.auth?.userId || "").trim();
+  if (!userId) return res.status(400).json({ message: "Session ungueltig" });
   try {
     const pCtx = await getTaskPermissionContext(taskId, userId);
     if (!pCtx.task || !pCtx.canEditAssignee) return res.status(403).json({ message: "Keine Berechtigung" });

@@ -54,7 +54,6 @@ type ProjectStatistics = {
 })
 export class Statistics implements OnInit {
   private http = inject(HttpClient);
-  private userId = getSessionStorage()?.getItem('userId');
 
   // Signals (reaktive State-Verwaltung)
   projects = signal<ProjectApiItem[]>([]);
@@ -126,18 +125,16 @@ export class Statistics implements OnInit {
   }
 
   ngOnInit() {
+    if (!getSessionStorage()) {
+      return;
+    }
     this.loadProjects();
   }
 
   // Ruft alle Projekte des Benutzers ab und wählt das erste aus
   loadProjects() {
-    if (!this.userId) {
-      this.errorMessage.set('Benutzer nicht authentifiziert');
-      return;
-    }
-
     // GET-Request an Backend: gibt alle Projekte des Benutzers zurück
-    this.http.get<GetProjectsResponse>(`/api/project/get/${this.userId}`)
+    this.http.get<GetProjectsResponse>('/api/project/get/me')
       .subscribe({
         // Erfolg: Projekte speichern und erstes Projekt auswählen
         next: (response) => {

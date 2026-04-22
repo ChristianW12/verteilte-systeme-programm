@@ -19,7 +19,9 @@
 
 ### routes/auth.routes.js
 - `POST /login`: Authentifizierung mit E-Mail/Passwort
-- `POST /session/validate`: Validiert `userId` + `passwordHash` gegen DB-Stand
+- `POST /refresh`: Rotiert Access/Refresh Token
+- `POST /logout`: Revoked Refresh-Token und löscht Auth-Cookies
+- `GET /session/me`: Liefert aktuellen eingeloggten User
 - `POST /signup`: Benutzer-Registrierung
 - `POST /profile`: Profildaten abrufen
 - `POST /profile/update`: Username, Email, Passwort ändern
@@ -47,7 +49,7 @@
 - `POST /create`: Erstellt Projekt mit Mitgliedern (transaktional)
 - `POST /edit`: Bearbeitet Projekt + Mitgliederverwaltung mit Diff-Berechnung
 - `POST /delete`: Löscht nur wenn Ersteller (Owner)
-- `GET /get/:userId`: Alle Projekte eines Users mit Mitgliederlisten
+- `GET /get/:userId?`: Alle Projekte des authentifizierten Users mit Mitgliederlisten
 - `GET /:projectId/assignees`: Admin/Developer eines Projekts
 - `GET /:projectId/statistics`: Task-Zähler nach Status
 
@@ -98,10 +100,10 @@ Backend → Redis Pub/Sub → WebSocket Server → Broadcast an alle Clients
 - HTTP 423 wenn von anderem User gesperrt
 
 ### Session-Management
-- **Frontend-seitig**: sessionStorage speichert `isLoggedIn`, `userId`, `userEmail`, `passwordHash`
-- **Route-Guard**: `auth.guard.ts` validiert Session per `/api/auth/session/validate`
-- **Kein JWT**: Einfache Session-Verwaltung für Demo
-- Keine Token-Validierung pro Request
+- **JWT-basiert**: Access + Refresh Token Rotation
+- **Storage**: Tokens in HttpOnly Cookies (`access_token`, `refresh_token`)
+- **Route-Guard**: `auth.guard.ts` prüft `/api/auth/session/me`, bei Bedarf vorher `/api/auth/refresh`
+- **Backend-Auth**: `api.routes.js` schützt `/tasks` und `/project` über Auth-Middleware
 
 ---
 
@@ -133,8 +135,8 @@ Backend → Redis Pub/Sub → WebSocket Server → Broadcast an alle Clients
 
 ## TODOs / Sicherheitshinweise
 
-⚠️ **Session-Hardening**: Frontend-Session wird im Guard serverseitig validiert, aber viele API-Endpunkte vertrauen weiterhin `user_id` aus dem Request  
-⚠️ **JWT**: Keine Token-Authentifizierung, nur sessionStorage  
+⚠️ **JWT Secret**: In Produktion starkes Secret per Environment Variable setzen und rotieren  
+⚠️ **Cookie Security**: Für Production HTTPS erzwingen (`Secure` Cookie)  
 ⚠️ **Duplikat-Check**: Profile/update prüft nicht auf Email-Duplikate  
 ⚠️ **Input-Validierung**: Könnte erweitert werden (SQL Injection ist aber durch Prepared Statements geschützt)
 

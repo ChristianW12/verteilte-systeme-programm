@@ -57,6 +57,7 @@ export class DetailedTask implements OnInit, OnDestroy {
   private heartbeatInterval: any;
   private readonly VIEW_TIMEOUT = 30000;
   private viewTimer: any;
+  private currentUserEmail = signal('');
 
   isEditMode = signal(false);
   saving = signal(false);
@@ -71,15 +72,25 @@ export class DetailedTask implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe((params) => {
-      const taskId = Number(params.get('id'));
-      if (!taskId || taskId <= 0) {
-        this.error.set('Ungültige Task-ID');
-        this.loading.set(false);
-        return;
-      }
-      this.loading.set(true);
-      this.loadTask(taskId);
+    if (!getSessionStorage()) {
+      return;
+    }
+
+    this.http.get<{ user?: { email?: string } }>('/api/auth/session/me').subscribe({
+      next: (session) => {
+        this.currentUserEmail.set(String(session.user?.email || '').trim().toLowerCase());
+        this.route.paramMap.subscribe((params) => {
+          const taskId = Number(params.get('id'));
+          if (!taskId || taskId <= 0) {
+            this.error.set('Ungültige Task-ID');
+            this.loading.set(false);
+            return;
+          }
+          this.loading.set(true);
+          this.loadTask(taskId);
+        });
+      },
+      error: () => this.router.navigate(['/login']),
     });
   }
 
@@ -91,14 +102,8 @@ export class DetailedTask implements OnInit, OnDestroy {
 
   // Lädt Task-Details und ruft Berechtigungen ab
   loadTask(id: number) {
-    const userId = getSessionStorage()?.getItem('userId');
-    const userEmail = getSessionStorage()?.getItem('userEmail');
-
-    let queryParams = `?user_id=${encodeURIComponent(String(userId || ''))}`;
-    if (userEmail) queryParams += `&user_email=${encodeURIComponent(userEmail)}`;
-
     this.http
-      .get<{ task?: TaskDetail; permissions?: TaskPermissions }>(`/api/tasks/${id}${queryParams}`)
+      .get<{ task?: TaskDetail; permissions?: TaskPermissions }>(`/api/tasks/${id}`)
       .subscribe({
         next: (res) => {
           if (!res.task) {
@@ -119,13 +124,8 @@ export class DetailedTask implements OnInit, OnDestroy {
 
   // Sperrt Task beim Öffnen, HTTP 423 wenn bereits gesperrt
   acquireLock(taskId: number) {
-    const userId = getSessionStorage()?.getItem('userId');
-    const userEmail = getSessionStorage()?.getItem('userEmail');
-
     this.http.post('/api/tasks/lock/acquire', {
       task_id: taskId,
-      user_id: userId,
-      user_email: userEmail
     }).subscribe({
       next: () => {
         this.lockStatus.set({ locked: true, userEmail: 'dir (Ich)' });
@@ -136,7 +136,7 @@ export class DetailedTask implements OnInit, OnDestroy {
         if (err.status === 423) {
           const lockedBy = err.error.lockedByEmail;
           // Falls die eigene E-Mail zurückkommt, haben wir den Lock bereits
-          if (lockedBy === userEmail) {
+          if (String(lockedBy || '').trim().toLowerCase() === this.currentUserEmail()) {
             this.lockStatus.set({ locked: true, userEmail: 'dir (Ich)' });
             this.startHeartbeat(taskId);
             this.startViewTimer();
@@ -152,13 +152,11 @@ export class DetailedTask implements OnInit, OnDestroy {
 
   // Verlängert Lock-TTL alle 30 Sekunden, verhindert Lock-Timeout
   private startHeartbeat(taskId: number) {
-    const userId = getSessionStorage()?.getItem('userId');
     if (this.heartbeatInterval) clearInterval(this.heartbeatInterval);
 
     this.heartbeatInterval = setInterval(() => {
       this.http.post('/api/tasks/lock/heartbeat', {
         task_id: taskId,
-        user_id: userId
       }).subscribe({
         error: () => {
           clearInterval(this.heartbeatInterval);
@@ -171,11 +169,9 @@ export class DetailedTask implements OnInit, OnDestroy {
   // Gibt Lock frei und entfernt Heartbeat
   private releaseLock() {
     const currentTask = this.task();
-    const userId = getSessionStorage()?.getItem('userId');
-    if (currentTask && userId && this.lockStatus()?.userEmail === 'dir (Ich)') {
+    if (currentTask && this.lockStatus()?.userEmail === 'dir (Ich)') {
       this.http.post('/api/tasks/lock/release', {
         task_id: currentTask.task_id,
-        user_id: userId
       }).subscribe();
     }
   }
@@ -226,9 +222,8 @@ export class DetailedTask implements OnInit, OnDestroy {
 
   // Ruft mögliche Assignees für diese Task ab
   loadAssignees(taskId: number) {
-    const userId = String(getSessionStorage()?.getItem('userId') || '').trim();
     this.http
-      .get<{ assignees?: Assignee[] }>(`/api/tasks/${taskId}/assignees?user_id=${encodeURIComponent(userId)}`)
+      .get<{ assignees?: Assignee[] }>(`/api/tasks/${taskId}/assignees`)
       .subscribe({
         next: (res) => this.assignees.set(res.assignees ?? []),
         error: () => this.assignees.set([])
@@ -242,16 +237,14 @@ export class DetailedTask implements OnInit, OnDestroy {
   // Speichert Task-Änderungen (mit Lock-Release)
   saveEdit() {
     const currentTask = this.task();
-    const userId = String(getSessionStorage()?.getItem('userId') || '').trim();
     const form = this.editForm();
 
-    if (!currentTask || !userId || !this.permissions().canEdit) return;
+    if (!currentTask || !this.permissions().canEdit) return;
     if (!form.title.trim()) return alert('Bitte einen Titel eingeben.');
 
     this.saving.set(true);
     const payload = {
       task_id: currentTask.task_id,
-      user_id: userId,
       title: form.title.trim(),
       description: form.description.trim(),
       status: form.status,
@@ -281,12 +274,11 @@ export class DetailedTask implements OnInit, OnDestroy {
 
   // Löscht Task nach Bestätigung
   onDelete() {
-    const userId = String(getSessionStorage()?.getItem('userId') || '').trim();
     const currentTask = this.task();
-    if (!currentTask || !userId || !this.permissions().canDelete) return;
+    if (!currentTask || !this.permissions().canDelete) return;
 
     if (window.confirm('Task wirklich löschen?')) {
-      this.http.post('/api/tasks/delete', { task_id: currentTask.task_id, user_id: userId })
+      this.http.post('/api/tasks/delete', { task_id: currentTask.task_id })
         .subscribe({
           next: () => this.goBack(),
           error: (err) => alert(err.error?.message || 'Fehler')

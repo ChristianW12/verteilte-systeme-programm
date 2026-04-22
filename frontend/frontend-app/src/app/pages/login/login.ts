@@ -10,7 +10,6 @@ type LoginResponse = {
   user?: {
     id?: string;
     email?: string;
-    passwordHash?: string;
   };
 };
 
@@ -49,25 +48,18 @@ export class Login {
           // Daten aus Response auslesen
           const userId = response.user?.id;
           const userEmail = response.user?.email;
-          const passwordHash = response.user?.passwordHash;
-
-          // Validierung: user.id, user.email und user.passwordHash muessen vorhanden sein
-          if (userId == null || !userEmail || !passwordHash) {
-            console.error('Ungueltige Login-Response: user.id, user.email oder user.passwordHash fehlt', response);
-            // Session-Daten bereinigen bei ungültiger Response
-            storage?.removeItem('isLoggedIn');
+          // Validierung: user.id und user.email müssen vorhanden sein
+          if (userId == null || !userEmail) {
+            console.error('Ungueltige Login-Response: user.id oder user.email fehlt', response);
             storage?.removeItem('userId');
             storage?.removeItem('userEmail');
-            storage?.removeItem('passwordHash');
             alert('Login-Antwort vom Server ist unvollstaendig. Bitte erneut versuchen.');
             return;
           }
 
-          // Session-Daten speichern im Session Storage
-          storage?.setItem('isLoggedIn', 'true');
+          // Optionaler UI-Cache, Auth selbst läuft über HttpOnly Cookies.
           storage?.setItem('userId', String(userId));
           storage?.setItem('userEmail', userEmail);
-          storage?.setItem('passwordHash', passwordHash);
 
           // Zur returnUrl navigieren (oder Dashboard als Fallback)
           const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/dashboard';
@@ -77,10 +69,8 @@ export class Login {
         error: (err) => {
           console.error('Login-Fehler:', err);
           const storage = getSessionStorage();
-          storage?.removeItem('isLoggedIn');
           storage?.removeItem('userId');
           storage?.removeItem('userEmail');
-          storage?.removeItem('passwordHash');
           alert('Anmeldung fehlgeschlagen. Bitte prüfe deine E-Mail und dein Passwort.');
         }
       });

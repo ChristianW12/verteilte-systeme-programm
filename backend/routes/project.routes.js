@@ -7,9 +7,9 @@ const { publishEvent } = require("../realtime.publisher");
 
 // Erstellt neues Projekt mit Mitgliedern (transaktional)
 router.post("/create", async (req, res) => {
-  const { name, description, createdBy, members } = req.body;
+  const { name, description, members } = req.body;
 
-  const createdById = String(createdBy || "").trim();
+  const createdById = String(req.auth?.userId || "").trim();
   if (!name || !String(name).trim()) {
     return res.status(400).json({ message: "Projektname ist erforderlich" });
   }
@@ -137,10 +137,10 @@ router.post("/create", async (req, res) => {
 
 // Löscht Projekt (nur Owner/Ersteller)
 router.post("/delete", async (req, res) => {
-  const { project_id, user_id } = req.body;
+  const { project_id } = req.body;
 
   const projectId = Number(project_id);
-  const userId = String(user_id || "").trim();
+  const userId = String(req.auth?.userId || "").trim();
 
   // Input-Validierung
   if (
@@ -185,10 +185,10 @@ router.post("/delete", async (req, res) => {
 
 // Bearbeitet Projekt + Mitgliederverwaltung mit Diff-Berechnung (Transaktional)
 router.post("/edit", async (req, res) => {
-  const { project_id, user_id, name, description, members } = req.body;
+  const { project_id, name, description, members } = req.body;
 
   const projectId = Number(project_id);
-  const userId = String(user_id || "").trim();
+  const userId = String(req.auth?.userId || "").trim();
 
   // Input-Validierung
   if (
@@ -442,8 +442,8 @@ router.get("/member-search", async (req, res) => {
 });
 
 // Ruft alle Projekte eines Benutzers mit Mitgliederlisten ab
-router.get("/get/:userId", async (req, res) => {
-  const userId = String(req.params.userId || "").trim();
+router.get("/get/:userId?", async (req, res) => {
+  const userId = String(req.auth?.userId || "").trim();
 
   if (!userId) {
     return res.status(400).json({ message: "Ungueltige userId" });

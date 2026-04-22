@@ -58,8 +58,8 @@ export class Dashboard implements OnInit {
   private http = inject(HttpClient);
   private realtime = inject(RealtimeService);
 
-  private userId = getSessionStorage()?.getItem('userId');
-  private userEmail = getSessionStorage()?.getItem('userEmail');
+  private currentUserId = signal<string>('');
+  private currentUserEmail = signal<string>('');
 
   projects = signal<ProjectCardData[]>([]);
   selectedProjectId = signal<number | null>(null);
@@ -115,20 +115,33 @@ export class Dashboard implements OnInit {
   private getFilteredTasks(): TaskCardData[] {
     const allTasks = this.tasks();
     if (!this.showOnlyMyTasks() || !this.canShowMyTasksForSelectedProject()) return allTasks;
-    const currentUserId = String(this.userId || '');
-    return allTasks.filter((task) => task.assigned_to_id === currentUserId);
+    return allTasks.filter((task) => task.assigned_to_id === this.currentUserId());
   }
 
   ngOnInit(): void {
-    if (!this.userId) {
-      this.router.navigate(['/login']);
+    if (!getSessionStorage()) {
       return;
     }
 
-    // Aktive Locks beim Initialisieren laden
-    this.loadActiveLocks();
+    this.http.get<{ user?: { id?: string; email?: string } }>('/api/auth/session/me').subscribe({
+      next: (session) => {
+        const userId = String(session.user?.id || '').trim();
+        const userEmail = String(session.user?.email || '').trim();
+        if (!userId || !userEmail) {
+          this.router.navigate(['/login']);
+          return;
+        }
+        this.currentUserId.set(userId);
+        this.currentUserEmail.set(userEmail);
+        this.loadActiveLocks();
+        this.loadProjects();
+      },
+      error: () => this.router.navigate(['/login']),
+    });
+  }
 
-    this.http.get<GetProjectsResponse>(`/api/project/get/${this.userId}`).subscribe({
+  private loadProjects(): void {
+    this.http.get<GetProjectsResponse>('/api/project/get/me').subscribe({
       next: (response) => {
         this.projects.set(
           response.projects.map((project) => ({
@@ -156,7 +169,7 @@ export class Dashboard implements OnInit {
 
   // Überprüft, ob der aktuelle Benutzer Admin des Projekts ist um es zu bearbeiten
   canUserEditProject(project: ProjectCardData): boolean {
-    return String(project.admin_id || '') === String(this.userId || '');
+    return String(project.admin_id || '') === String(this.currentUserId() || '');
   }
 
   // Überprüft, ob "Meine Tasks" Filter angezeigt werden soll (nur für Admins und Developer)
@@ -230,8 +243,7 @@ export class Dashboard implements OnInit {
     // Lock beim Backend anfragen
     this.http.post('/api/tasks/lock/acquire', {
       task_id: task.task_id,
-      user_id: this.userId,
-      user_email: this.userEmail
+      user_email: this.currentUserEmail()
     }).subscribe({
       error: (err) => {
         if (err.status === 423) {
@@ -245,20 +257,11 @@ export class Dashboard implements OnInit {
   // Aktualisiert Status und gibt Lock frei (optimistisch mit Rollback)
   drop(event: CdkDragDrop<string>): void {
     const task = event.item.data as TaskCardData;
-    const release = () => {
-      this.http.post('/api/tasks/lock/release', {
-        task_id: task.task_id,
-        user_id: userId
-      }).subscribe();
-    };
-
-    const userId = String(this.userId || '').trim();
 
     // Wenn am gleichen Ort abgelegt -> Lock sofort freigeben
     if (event.previousContainer === event.container) {
       this.http.post('/api/tasks/lock/release', {
         task_id: task.task_id,
-        user_id: userId
       }).subscribe();
       return;
     }
@@ -272,7 +275,6 @@ export class Dashboard implements OnInit {
 
     this.http.post('/api/tasks/edit/updateStatus', {
       task_id: task.task_id,
-      user_id: userId,
       status: newStatus,
     }).subscribe({
       // Das Backend gibt den Lock nun automatisch nach updateStatus frei
@@ -282,7 +284,7 @@ export class Dashboard implements OnInit {
           tasks.map((t) => (t.task_id === task.task_id ? { ...t, status: task.status } : t)),
         );
         // Falls updateStatus fehlschlägt, manuell freigeben
-        this.http.post('/api/tasks/lock/release', { task_id: task.task_id, user_id: userId }).subscribe();
+        this.http.post('/api/tasks/lock/release', { task_id: task.task_id }).subscribe();
       },
     });
   }

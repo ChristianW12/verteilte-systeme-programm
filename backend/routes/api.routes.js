@@ -5,6 +5,7 @@ const os = require('os');
 const authRoutes = require('./auth.routes');
 const taskRoutes = require('./task.routes');
 const projectRoutes = require('./project.routes'); 
+const { authenticate } = require('../middleware/authenticate');
 
 const router = express.Router();
 
@@ -21,9 +22,9 @@ router.get('/test', (req, res) => {
 router.use('/auth', authRoutes);
 
 // Sub-Route für alles rund um die Tasks
-router.use('/tasks', taskRoutes);
+router.use('/tasks', authenticate, taskRoutes);
 
 // Sub-Route für alles rund um die Projekte
-router.use('/project', projectRoutes);
+router.use('/project', authenticate, projectRoutes);
 
 module.exports = router;

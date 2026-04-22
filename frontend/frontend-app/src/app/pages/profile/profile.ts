@@ -7,11 +7,10 @@ import { getSessionStorage } from '../../utils/storage';
 // Response-Typ vom Profile-Endpoint
 type ProfileResponse = {
   user: {
-    id: number;
+    id: string;
     username: string;
     email: string;
     createdAt: string;
-    password: string;
   };
 };
 
@@ -33,17 +32,17 @@ export class Profile implements OnInit {
   memberSince = signal('');
 
   ngOnInit() {
+    if (!getSessionStorage()) {
+      return;
+    }
     this.loadProfile();
   }
 
   // Ruft Benutzerprofildaten vom Backend ab und speichert sie in Signals
   loadProfile() {
 
-    // userId aus Session Storage auslesen
-    const userId = getSessionStorage()?.getItem('userId');
-
     // POST-Request an Backend: gibt Profildaten des Benutzers zurück
-    this.http.post<ProfileResponse>('/api/auth/profile', { userId })
+    this.http.post<ProfileResponse>('/api/auth/profile', {})
       .subscribe({
         // Erfolg: Profildaten in Signals speichern (aktualisiert automatisch die View)
         next: (response) => {
@@ -64,14 +63,23 @@ export class Profile implements OnInit {
   logout() {
     const storage = getSessionStorage();
 
-    // Alle Session-Daten entfernen
-    storage?.removeItem('isLoggedIn');
-    storage?.removeItem('userId');
-    storage?.removeItem('userEmail');
-    storage?.removeItem('passwordHash');
-
-    alert('Erfolgreich ausgeloggt');
-    this.router.navigate(['/home']);
+    this.http.post('/api/auth/logout', {}).subscribe({
+      next: () => {
+        storage?.removeItem('userId');
+        storage?.removeItem('userEmail');
+        storage?.removeItem('isLoggedIn');
+        storage?.removeItem('passwordHash');
+        alert('Erfolgreich ausgeloggt');
+        this.router.navigate(['/home']);
+      },
+      error: () => {
+        storage?.removeItem('userId');
+        storage?.removeItem('userEmail');
+        storage?.removeItem('isLoggedIn');
+        storage?.removeItem('passwordHash');
+        this.router.navigate(['/home']);
+      }
+    });
   }
 
 }

@@ -70,6 +70,10 @@ export class CreateTask implements OnInit {
   }
 
   ngOnInit(): void {
+    if (!getSessionStorage()) {
+      return;
+    }
+
     // Heutiges Datum im Format YYYY-MM-DD (lokal)
     const today = new Date();
     const year = today.getFullYear();
@@ -77,13 +81,7 @@ export class CreateTask implements OnInit {
     const day = String(today.getDate()).padStart(2, '0');
     this.minDate = `${year}-${month}-${day}`;
 
-    const userId = getSessionStorage()?.getItem('userId');
-    if (!userId) {
-      alert('Bitte zuerst einloggen.');
-      return;
-    }
-
-    this.http.post<ProjectsResponse>('/api/tasks/get', { user_id: userId }).subscribe({
+    this.http.post<ProjectsResponse>('/api/tasks/get', {}).subscribe({
       next: (response) => {
         this.projects.set(response.projects ?? []);
       },
@@ -116,13 +114,6 @@ export class CreateTask implements OnInit {
 
   // Erstellt neue Task und triggert Realtime-Refresh
   onSubmit(): void {
-    const userId = getSessionStorage()?.getItem('userId');
-
-    if (!userId) {
-      alert('Bitte zuerst einloggen.');
-      return;
-    }
-
     if (!this.projectId) {
       alert('Bitte ein Projekt waehlen.');
       return;
@@ -153,7 +144,6 @@ export class CreateTask implements OnInit {
       status: this.status,
       priority: this.priority,
       deadline: this.deadline || null,
-      created_by: userId,
       assigned_to: this.assignedTo || null,
     };
 

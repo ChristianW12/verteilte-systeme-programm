@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { Component, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { getSessionStorage } from '../../utils/storage';
 
 type UserSuggestion = {
   user_id: string;
@@ -153,13 +152,6 @@ export class CreateProject {
 
   // Erstellt Projekt mit Mitgliedern und navigiert zum Dashboard
   onSubmit(): void {
-    const createdByRaw = getSessionStorage()?.getItem('userId');
-    const createdBy = String(createdByRaw || '').trim();
-    if (!createdBy) {
-      alert('Bitte zuerst einloggen.');
-      return;
-    }
-
     const name = this.projectTitle.trim();
     if (!name) {
       alert('Bitte einen Projekttitel eingeben.');
@@ -179,7 +171,6 @@ export class CreateProject {
       .post<CreateProjectResponse>('/api/project/create', {
         name,
         description: this.projectDescription.trim(),
-        createdBy,
         members,
       })
       .subscribe({

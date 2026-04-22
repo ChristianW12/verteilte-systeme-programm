@@ -1,16 +1,20 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient, withFetch } from '@angular/common/http';
+import { HttpInterceptorFn, provideHttpClient, withFetch, withInterceptors } from '@angular/common/http';
 
 import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
+
+const includeCredentialsInterceptor: HttpInterceptorFn = (req, next) => {
+  return next(req.clone({ withCredentials: true }));
+};
 
 // Angular App Konfiguration mit Router, HTTP Client und Hydration
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
-    provideHttpClient(withFetch()),
+    provideHttpClient(withFetch(), withInterceptors([includeCredentialsInterceptor])),
     provideClientHydration(withEventReplay())
   ]
 };

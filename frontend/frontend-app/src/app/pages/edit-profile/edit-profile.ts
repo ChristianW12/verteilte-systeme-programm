@@ -22,20 +22,14 @@ export class EditProfile implements OnInit {
   passwortBestaetigen = signal('');
   aktuellesPassword = signal('');
 
-  private userId = signal(getSessionStorage()?.getItem('userId') || '');
   private emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   ngOnInit() {
-
-    if (!this.userId()) {
-      alert('Benutzer nicht gefunden. Bitte erneut anmelden.');
-      setTimeout(() => {
-        this.router.navigate(['/login']);
-      }, 1000);
+    if (!getSessionStorage()) {
       return;
     }
 
-    this.http.post('/api/auth/profile', { userId: this.userId() })
+    this.http.post('/api/auth/profile', {})
       .subscribe({
         next: (response: any) => {
           this.username.set(response.user.username || '');
@@ -56,7 +50,6 @@ export class EditProfile implements OnInit {
     }
 
     const payload: any = {
-      userId: this.userId(),
       username: this.username(),
       email: this.email(),
     };
@@ -144,7 +137,7 @@ export class EditProfile implements OnInit {
       return;
     }
 
-    this.http.post('/api/auth/profile/delete', { userId: this.userId() })
+    this.http.post('/api/auth/profile/delete', {})
       .subscribe({
         next: (res: any) => {
           alert('Profil erfolgreich gelöscht. Du wirst abgemeldet.');

@@ -86,15 +86,9 @@ export class EditProject implements OnInit, OnDestroy {
 
 
   ngOnInit(): void {
-    const userIdRaw = getSessionStorage()?.getItem('userId');
-    const userId = String(userIdRaw || '').trim();
-
-    if (!userId) {
-      this.router.navigate(['/login']);
+    if (!getSessionStorage()) {
       return;
     }
-
-    this.userId = userId;
 
     this.route.paramMap.subscribe((params) => {
       const id = params.get('projectId');
@@ -106,14 +100,16 @@ export class EditProject implements OnInit, OnDestroy {
       }
 
       this.projectId = projectId;
-      this.checkAuthorization(userId, projectId);
+      this.checkAuthorization(projectId);
     });
   }
 
   // Überprüft, ob der Benutzer Admin des Projekts ist, und lädt Projektdaten
-  private checkAuthorization(userId: string, projectId: number): void {
-    this.http.get<GetProjectsResponse>(`/api/project/get/${userId}`).subscribe({
+  private checkAuthorization(projectId: number): void {
+    this.http.get<GetProjectsResponse>('/api/project/get/me').subscribe({
       next: (response) => {
+        const userId = String(response.userId || '').trim();
+        this.userId = userId;
         const project = response.projects.find((p) => p.project_id === projectId);
 
         if (!project) {
@@ -342,7 +338,6 @@ export class EditProject implements OnInit, OnDestroy {
     this.http
       .post<EditProjectResponse>('/api/project/edit', {
         project_id: this.projectId,
-        user_id: this.userId,
         name,
         description: this.projectDescription().trim(),
         members,
@@ -377,7 +372,6 @@ export class EditProject implements OnInit, OnDestroy {
     this.http
       .post<{ message: string }>('/api/project/delete', {
         project_id: this.projectId,
-        user_id: this.userId,
       })
       .subscribe({
         next: (response) => {

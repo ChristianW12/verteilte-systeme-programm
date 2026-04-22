@@ -5,14 +5,87 @@ const router = express.Router();
 const db = require("../db");
 const bcrypt = require("bcryptjs");
 const { randomBytes } = require("crypto");
+const { authenticate } = require("../middleware/authenticate");
+const {
+  ACCESS_COOKIE,
+  REFRESH_COOKIE,
+  REFRESH_TOKEN_TTL_DAYS,
+  signAccessToken,
+  signRefreshToken,
+  verifyRefreshToken,
+  hashToken,
+  buildCookieOptions,
+} = require("../auth/jwt");
 
 const BCRYPT_ROUNDS = 10;
+const ACCESS_COOKIE_MAX_AGE = 15 * 60 * 1000;
+const REFRESH_COOKIE_MAX_AGE = REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000;
+
+let refreshTableReadyPromise = null;
 
 function createRandomUserId() {
   return `usr_${randomBytes(12).toString("hex")}`;
 }
 
-// Login mit E-Mail + Passwort (bcrypt-Hashvergleich)
+async function ensureRefreshTokenTable() {
+  if (!refreshTableReadyPromise) {
+    refreshTableReadyPromise = db.execute(`
+      CREATE TABLE IF NOT EXISTS auth_refresh_tokens (
+        token_id INT AUTO_INCREMENT PRIMARY KEY,
+        jti VARCHAR(128) NOT NULL UNIQUE,
+        user_id VARCHAR(64) NOT NULL,
+        token_hash VARCHAR(255) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        revoked_at DATETIME NULL,
+        replaced_by_jti VARCHAR(128) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_user_id (user_id),
+        INDEX idx_expires_at (expires_at),
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+      )
+    `);
+  }
+  await refreshTableReadyPromise;
+}
+
+async function revokeRefreshByJti(jti, replacedByJti = null) {
+  if (!jti) return;
+  await db.execute(
+    `UPDATE auth_refresh_tokens
+     SET revoked_at = COALESCE(revoked_at, NOW()),
+         replaced_by_jti = COALESCE(?, replaced_by_jti)
+     WHERE jti = ?`,
+    [replacedByJti, jti],
+  );
+}
+
+function setAuthCookies(res, accessToken, refreshToken) {
+  res.cookie(ACCESS_COOKIE, accessToken, buildCookieOptions(ACCESS_COOKIE_MAX_AGE));
+  res.cookie(REFRESH_COOKIE, refreshToken, buildCookieOptions(REFRESH_COOKIE_MAX_AGE));
+}
+
+function clearAuthCookies(res) {
+  res.clearCookie(ACCESS_COOKIE, buildCookieOptions(0));
+  res.clearCookie(REFRESH_COOKIE, buildCookieOptions(0));
+}
+
+async function issueSession(res, user) {
+  await ensureRefreshTokenTable();
+
+  const accessToken = signAccessToken(user);
+  const refresh = signRefreshToken(user);
+  const refreshHash = hashToken(refresh.token);
+
+  await db.execute(
+    `INSERT INTO auth_refresh_tokens (jti, user_id, token_hash, expires_at)
+     VALUES (?, ?, ?, ?)`,
+    [refresh.jti, user.userId, refreshHash, refresh.expiresAt],
+  );
+
+  setAuthCookies(res, accessToken, refresh.token);
+}
+
+// Login mit E-Mail + Passwort
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -33,63 +106,145 @@ router.post("/login", async (req, res) => {
     }
 
     const user = rows[0];
-
     const passwordMatches = await bcrypt.compare(password, user.password);
     if (!passwordMatches) {
       return res.status(401).json({ message: "E-Mail oder Passwort falsch" });
     }
 
-    let userId = user.user_id;
-    let userEmail = user.email;
-
-    res.json({
-      message: "Login erfolgreich",
-      user: {
-        id: userId,
-        email: userEmail,
-        passwordHash: user.password,
-      },
+    await issueSession(res, {
+      userId: String(user.user_id),
+      email: String(user.email),
     });
-  } catch (error) {
-    console.error("Login-Fehler im Backend:", error);
-    res.status(500).json({ message: "Interner Serverfehler" });
-  }
-});
-
-// Validiert Session-Daten aus dem Frontend gegen DB-Stand
-router.post("/session/validate", async (req, res) => {
-  const userId = String(req.body?.userId || "").trim();
-  const passwordHash = String(req.body?.passwordHash || "").trim();
-
-  if (!userId || !passwordHash) {
-    return res.status(400).json({ valid: false, message: "userId und passwordHash sind erforderlich" });
-  }
-
-  try {
-    const [rows] = await db.execute(
-      "SELECT user_id, email, password FROM users WHERE user_id = ?",
-      [userId],
-    );
-
-    if (rows.length === 0) {
-      return res.status(401).json({ valid: false, message: "Session ungueltig" });
-    }
-
-    const user = rows[0];
-    if (String(user.password) !== passwordHash) {
-      return res.status(401).json({ valid: false, message: "Session ungueltig" });
-    }
 
     return res.json({
-      valid: true,
+      message: "Login erfolgreich",
       user: {
         id: user.user_id,
         email: user.email,
       },
     });
   } catch (error) {
-    console.error("Session-Validierung fehlgeschlagen:", error);
-    return res.status(500).json({ valid: false, message: "Interner Serverfehler" });
+    console.error("Login-Fehler im Backend:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
+  }
+});
+
+// Rotiert Access + Refresh Token
+router.post("/refresh", async (req, res) => {
+  const refreshToken = String(req.cookies?.[REFRESH_COOKIE] || "").trim();
+  if (!refreshToken) {
+    return res.status(401).json({ message: "Refresh Token fehlt" });
+  }
+
+  try {
+    await ensureRefreshTokenTable();
+    const payload = verifyRefreshToken(refreshToken);
+    const currentJti = String(payload.jti || "");
+    const userId = String(payload.sub || "");
+    const refreshHash = hashToken(refreshToken);
+
+    const [rows] = await db.execute(
+      `SELECT jti, user_id, token_hash, expires_at, revoked_at
+       FROM auth_refresh_tokens
+       WHERE jti = ?`,
+      [currentJti],
+    );
+
+    if (rows.length === 0) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "Ungültiger Refresh Token" });
+    }
+
+    const tokenRow = rows[0];
+    const isExpired = new Date(tokenRow.expires_at).getTime() <= Date.now();
+    const isRevoked = tokenRow.revoked_at != null;
+    if (
+      isExpired ||
+      isRevoked ||
+      String(tokenRow.user_id) !== userId ||
+      String(tokenRow.token_hash) !== refreshHash
+    ) {
+      await revokeRefreshByJti(currentJti);
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "Ungültiger Refresh Token" });
+    }
+
+    const [userRows] = await db.execute(
+      "SELECT user_id, email FROM users WHERE user_id = ?",
+      [userId],
+    );
+    if (userRows.length === 0) {
+      await revokeRefreshByJti(currentJti);
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "Session nicht mehr gültig" });
+    }
+
+    const refreshNext = signRefreshToken({
+      userId,
+      email: userRows[0].email,
+    });
+
+    await db.execute(
+      `INSERT INTO auth_refresh_tokens (jti, user_id, token_hash, expires_at)
+       VALUES (?, ?, ?, ?)`,
+      [refreshNext.jti, userId, hashToken(refreshNext.token), refreshNext.expiresAt],
+    );
+    await revokeRefreshByJti(currentJti, refreshNext.jti);
+
+    const accessToken = signAccessToken({
+      userId,
+      email: userRows[0].email,
+    });
+    setAuthCookies(res, accessToken, refreshNext.token);
+    return res.status(200).json({ message: "Session erneuert" });
+  } catch (error) {
+    clearAuthCookies(res);
+    return res.status(401).json({ message: "Refresh fehlgeschlagen" });
+  }
+});
+
+// Logout: Refresh Token revoken + Cookies löschen
+router.post("/logout", async (req, res) => {
+  const refreshToken = String(req.cookies?.[REFRESH_COOKIE] || "").trim();
+  if (refreshToken) {
+    try {
+      const payload = verifyRefreshToken(refreshToken);
+      await revokeRefreshByJti(String(payload.jti || ""));
+    } catch (_error) {
+      // Token ist bereits ungültig; Cookies werden trotzdem gelöscht.
+    }
+  }
+
+  clearAuthCookies(res);
+  return res.status(200).json({ message: "Logout erfolgreich" });
+});
+
+// Aktuelle Session prüfen
+router.get("/session/me", authenticate, async (req, res) => {
+  try {
+    const userId = String(req.auth?.userId || "").trim();
+    const [rows] = await db.execute(
+      "SELECT user_id, username, email, created_at FROM users WHERE user_id = ?",
+      [userId],
+    );
+
+    if (rows.length === 0) {
+      clearAuthCookies(res);
+      return res.status(401).json({ message: "Session nicht mehr gültig" });
+    }
+
+    const user = rows[0];
+    return res.status(200).json({
+      user: {
+        id: user.user_id,
+        username: user.username,
+        email: user.email,
+        createdAt: user.created_at,
+      },
+    });
+  } catch (error) {
+    console.error("Fehler bei session/me:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
@@ -97,14 +252,12 @@ router.post("/session/validate", async (req, res) => {
 router.post("/signup", async (req, res) => {
   const { username, email, password } = req.body;
 
-    // Überprüfen, ob alle erforderlichen Felder vorhanden sind
   if (!username || !email || !password) {
     return res
       .status(400)
       .json({ message: "Benutzername, E-Mail und Passwort sind erforderlich" });
   }
 
-  // Längenbeschränkungen validieren
   if (username.length < 3 || username.length > 30) {
     return res
       .status(400)
@@ -134,7 +287,7 @@ router.post("/signup", async (req, res) => {
         .status(409)
         .json({ message: "E-Mail ist bereits registriert" });
     }
-    // nach erfolgreicher Abfrage wird der neue Benutzer in die Datenbank eingefügt
+
     const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const userId = createRandomUserId();
     await db.execute(
@@ -142,20 +295,16 @@ router.post("/signup", async (req, res) => {
       [userId, username, email, passwordHash],
     );
 
-    res.status(201).json({ message: "Registrierung erfolgreich" });
+    return res.status(201).json({ message: "Registrierung erfolgreich" });
   } catch (error) {
     console.error("Registrierungsfehler im Backend:", error);
-    res.status(500).json({ message: "Interner Serverfehler" });
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
-// Ruft Profildaten ab
-router.post('/profile', async (req, res) => {
-  const {userId} = req.body;
-  
-  if (!userId) {
-    return res.status(400).json({message: "Benutzer-ID ist erforderlich"});
-  }
+// Ruft Profildaten ab (aus Auth-Session)
+router.post("/profile", authenticate, async (req, res) => {
+  const userId = String(req.auth?.userId || "").trim();
 
   try {
     const [rows] = await db.execute(
@@ -164,12 +313,11 @@ router.post('/profile', async (req, res) => {
     );
 
     if (rows.length === 0) {
-      return res.status(404).json({message: "Benutzer nicht gefunden"});
+      return res.status(404).json({ message: "Benutzer nicht gefunden" });
     }
-    
-      // Antwort an das Backend mit den Profildaten des Benutzers
+
     const user = rows[0];
-    res.json({
+    return res.json({
       user: {
         id: user.user_id,
         username: user.username,
@@ -179,65 +327,61 @@ router.post('/profile', async (req, res) => {
     });
   } catch (error) {
     console.error("Fehler beim Abrufen des Profils im Backend:", error);
-    res.status(500).json({message: "Interner Serverfehler"});
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
 // Aktualisiert Profildaten (Username, Email, Passwort)
-router.post('/profile/update', async (req, res) => {
-  const { userId, username, email, neuesPassword } = req.body;
+router.post("/profile/update", authenticate, async (req, res) => {
+  const { username, email, neuesPassword } = req.body;
+  const userId = String(req.auth?.userId || "").trim();
 
   if (!userId || !username || !email) {
-    return res.status(400).json({ message: 'userId, username und email sind erforderlich' });
+    return res.status(400).json({ message: "username und email sind erforderlich" });
   }
 
   try {
-    const [rows] = await db.execute('SELECT user_id FROM users WHERE user_id = ?', [userId]);
+    const [rows] = await db.execute("SELECT user_id FROM users WHERE user_id = ?", [userId]);
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+      return res.status(404).json({ message: "Benutzer nicht gefunden" });
     }
 
     if (neuesPassword) {
       const passwordHash = await bcrypt.hash(neuesPassword, BCRYPT_ROUNDS);
       await db.execute(
-        'UPDATE users SET username = ?, email = ?, password = ? WHERE user_id = ?',
-        [username, email, passwordHash, userId]
+        "UPDATE users SET username = ?, email = ?, password = ? WHERE user_id = ?",
+        [username, email, passwordHash, userId],
       );
     } else {
       await db.execute(
-        'UPDATE users SET username = ?, email = ? WHERE user_id = ?',
-        [username, email, userId]
+        "UPDATE users SET username = ?, email = ? WHERE user_id = ?",
+        [username, email, userId],
       );
     }
 
-    res.json({ message: 'Profil erfolgreich aktualisiert' });
+    return res.json({ message: "Profil erfolgreich aktualisiert" });
   } catch (error) {
-    console.error('Fehler beim Aktualisieren des Profils im Backend:', error);
-    res.status(500).json({ message: 'Interner Serverfehler' });
+    console.error("Fehler beim Aktualisieren des Profils im Backend:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 
 // Löscht Benutzerkonto
-router.post('/profile/delete', async (req, res) => {
-  const { userId } = req.body;
-
-  if (!userId) {
-    return res.status(400).json({ message: 'userId ist erforderlich' });
-  }
+router.post("/profile/delete", authenticate, async (req, res) => {
+  const userId = String(req.auth?.userId || "").trim();
 
   try {
-    const [rows] = await db.execute('SELECT user_id FROM users WHERE user_id = ?', [userId]);
+    const [rows] = await db.execute("SELECT user_id FROM users WHERE user_id = ?", [userId]);
     if (rows.length === 0) {
-      return res.status(404).json({ message: 'Benutzer nicht gefunden' });
+      return res.status(404).json({ message: "Benutzer nicht gefunden" });
     }
 
-    // Lösche den Benutzer aus der Datenbank
-    await db.execute('DELETE FROM users WHERE user_id = ?', [userId]);
-
-    res.json({ message: 'Profil erfolgreich gelöscht' });
+    await db.execute("DELETE FROM users WHERE user_id = ?", [userId]);
+    clearAuthCookies(res);
+    return res.json({ message: "Profil erfolgreich gelöscht" });
   } catch (error) {
-    console.error('Fehler beim Löschen des Profils im Backend:', error);
-    res.status(500).json({ message: 'Interner Serverfehler' });
+    console.error("Fehler beim Löschen des Profils im Backend:", error);
+    return res.status(500).json({ message: "Interner Serverfehler" });
   }
 });
 

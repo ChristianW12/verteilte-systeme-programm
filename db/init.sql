@@ -6,6 +6,7 @@ DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS tasks;
 DROP TABLE IF EXISTS project_members;
 DROP TABLE IF EXISTS projects;
+DROP TABLE IF EXISTS auth_refresh_tokens;
 DROP TABLE IF EXISTS users;
 SET FOREIGN_KEY_CHECKS = 1;
 
@@ -19,6 +20,21 @@ CREATE TABLE users (
 );
 
 -- 2. Projekte
+CREATE TABLE auth_refresh_tokens (
+    token_id INT AUTO_INCREMENT PRIMARY KEY,
+    jti VARCHAR(128) NOT NULL UNIQUE,
+    user_id VARCHAR(64) NOT NULL,
+    token_hash VARCHAR(255) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    revoked_at DATETIME NULL,
+    replaced_by_jti VARCHAR(128) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_user_id (user_id),
+    INDEX idx_expires_at (expires_at),
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+-- 3. Projekte
 CREATE TABLE projects (
     project_id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(100) NOT NULL,
@@ -28,7 +44,7 @@ CREATE TABLE projects (
     FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- 3. Aufgaben
+-- 4. Aufgaben
 CREATE TABLE tasks (
     task_id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
@@ -46,7 +62,7 @@ CREATE TABLE tasks (
     FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
--- 4. Kommentare
+-- 5. Kommentare
 CREATE TABLE comments (
     comment_id INT AUTO_INCREMENT PRIMARY KEY,
     task_id INT NOT NULL,
@@ -57,7 +73,7 @@ CREATE TABLE comments (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
--- 5. Projektmitglieder
+-- 6. Projektmitglieder
 CREATE TABLE project_members (
     member_id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
