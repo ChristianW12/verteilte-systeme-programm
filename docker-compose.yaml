@@ -122,6 +122,14 @@ services:
       - backend1
       - backend2
       - backend3
+
+  # Temporärer öffentlicher Tunnel (TryCloudflare) auf den Reverse Proxy
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    command: tunnel --no-autoupdate --url http://reverse-proxy:80
+    restart: unless-stopped
+    depends_on:
+      - reverse-proxy
   # Dedizierter WebSocket Server für Realtime Events (Redis Pub/Sub Subscriber)
   websockets:
     build: ./websockets
