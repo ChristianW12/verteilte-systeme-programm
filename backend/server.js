@@ -19,6 +19,7 @@ app.use(cookieParser());
 
 // Logging + CORS + Preflight-Handler
 app.use((req, res, next) => {
+    // Schreibt Request-Log und setzt CORS-Header inklusive Credential-Unterstützung für Cookies.
     console.log(`[${new Date().toISOString()}] ${SERVER_ID} | ${req.method} ${req.path}`);
     const requestOrigin = req.headers.origin;
     res.setHeader('X-Served-By', SERVER_ID);
@@ -36,6 +37,7 @@ app.use((req, res, next) => {
 app.use('/api', apiRoutes);
 
 server.listen(SERVER_PORT, '0.0.0.0', () => {
+    // Startet HTTP-Server und protokolliert Host, Port sowie Test-Endpoint zur Kontrolle.
     console.log(`========================================`);
     console.log(`Backend-Server läuft: ${SERVER_ID}`);
     console.log(`Port: ${SERVER_PORT}`);

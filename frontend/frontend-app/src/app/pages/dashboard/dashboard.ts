@@ -233,8 +233,8 @@ export class Dashboard implements OnInit {
   dragStarted(event: CdkDragStart): void {
     const task = event.source.data as TaskCardData;
 
-    // Verhindern, dass Dragger gestartet wird, wenn bereits gelockt
-    if (this.taskLocks().has(task.task_id)) {
+    // Verhindern, dass Dragger gestartet wird, wenn bereits von JEMAND ANDEREM gelockt
+    if (this.taskLocks().has(task.task_id) && this.taskLocks().get(task.task_id) !== this.currentUserEmail()) {
       event.source._dragRef.reset();
       alert(`Diese Task wird gerade von ${this.taskLocks().get(task.task_id)} bearbeitet.`);
       return;
@@ -252,6 +252,17 @@ export class Dashboard implements OnInit {
         }
       }
     });
+  }
+
+  // Wird immer aufgerufen, wenn der Drag-Vorgang endet
+  dragEnded(event: any): void {
+    const task = event.source.data as TaskCardData;
+    // Wir senden sicherheitshalber einen Release. 
+    // Falls der Status bereits erfolgreich per 'drop' aktualisiert wurde, 
+    // hat das Backend den Lock bereits entfernt und dieser Call ist redundant aber harmlos.
+    this.http.post('/api/tasks/lock/release', {
+      task_id: task.task_id,
+    }).subscribe();
   }
 
   // Aktualisiert Status und gibt Lock frei (optimistisch mit Rollback)

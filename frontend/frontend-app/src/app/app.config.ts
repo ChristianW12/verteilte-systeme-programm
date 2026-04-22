@@ -6,6 +6,7 @@ import { routes } from './app.routes';
 import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
 const includeCredentialsInterceptor: HttpInterceptorFn = (req, next) => {
+  // Hängt Credentials an jeden Request, damit Browser Auth-Cookies automatisch mitschickt.
   return next(req.clone({ withCredentials: true }));
 };
 

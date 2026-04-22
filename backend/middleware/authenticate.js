@@ -3,6 +3,7 @@
 const { ACCESS_COOKIE, verifyAccessToken } = require("../auth/jwt");
 
 function authenticate(req, res, next) {
+  // Prüft Access-Cookie, validiert JWT und schreibt User-Kontext in req.auth.
   const token = req.cookies?.[ACCESS_COOKIE];
   if (!token) {
     return res.status(401).json({ message: "Nicht authentifiziert" });

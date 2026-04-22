@@ -317,6 +317,12 @@ router.post("/delete", async (req, res) => {
     if (!permissions.canDelete) return res.status(403).json({ message: "Keine Berechtigung" });
 
     await db.execute("DELETE FROM tasks WHERE task_id = ?", [taskId]);
+
+    // Lock freigeben
+    const redis = await getClient();
+    await redis.del(`lock:task:${taskId}`);
+    await publishEvent("task.unlocked", { taskId });
+
     await publishEvent("task.deleted", { taskId, projectId: permissions.task.project_id });
     return res.status(200).json({ message: "Task erfolgreich geloescht" });
   } catch (error) {

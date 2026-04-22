@@ -24,10 +24,12 @@ const REFRESH_COOKIE_MAX_AGE = REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60 * 1000;
 let refreshTableReadyPromise = null;
 
 function createRandomUserId() {
+  // Erstellt kryptographisch zufällige, kollisionsarme String-ID für neue Benutzerkonten.
   return `usr_${randomBytes(12).toString("hex")}`;
 }
 
 async function ensureRefreshTokenTable() {
+  // Erstellt Refresh-Token-Tabelle lazy beim ersten Zugriff, danach wiederverwendbare Promise.
   if (!refreshTableReadyPromise) {
     refreshTableReadyPromise = db.execute(`
       CREATE TABLE IF NOT EXISTS auth_refresh_tokens (
@@ -49,6 +51,7 @@ async function ensureRefreshTokenTable() {
 }
 
 async function revokeRefreshByJti(jti, replacedByJti = null) {
+  // Markiert Refresh-Token als widerrufen und optional durch neues JTI ersetzt.
   if (!jti) return;
   await db.execute(
     `UPDATE auth_refresh_tokens
@@ -60,16 +63,19 @@ async function revokeRefreshByJti(jti, replacedByJti = null) {
 }
 
 function setAuthCookies(res, accessToken, refreshToken) {
+  // Schreibt Access- und Refresh-Token als sichere HttpOnly-Cookies in die Antwort.
   res.cookie(ACCESS_COOKIE, accessToken, buildCookieOptions(ACCESS_COOKIE_MAX_AGE));
   res.cookie(REFRESH_COOKIE, refreshToken, buildCookieOptions(REFRESH_COOKIE_MAX_AGE));
 }
 
 function clearAuthCookies(res) {
+  // Entfernt Auth-Cookies zuverlässig, um Session auf Clientseite vollständig zu beenden.
   res.clearCookie(ACCESS_COOKIE, buildCookieOptions(0));
   res.clearCookie(REFRESH_COOKIE, buildCookieOptions(0));
 }
 
 async function issueSession(res, user) {
+  // Erzeugt neue Token, persistiert Refresh-Hash und setzt beide Auth-Cookies atomar.
   await ensureRefreshTokenTable();
 
   const accessToken = signAccessToken(user);
@@ -87,6 +93,7 @@ async function issueSession(res, user) {
 
 // Login mit E-Mail + Passwort
 router.post("/login", async (req, res) => {
+  // Authentifiziert Credentials, erstellt Session-Tokens und liefert minimale User-Metadaten zurück.
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -131,6 +138,7 @@ router.post("/login", async (req, res) => {
 
 // Rotiert Access + Refresh Token
 router.post("/refresh", async (req, res) => {
+  // Prüft Refresh-Token, rotiert JTI und setzt frische Access/Refresh-Cookies.
   const refreshToken = String(req.cookies?.[REFRESH_COOKIE] || "").trim();
   if (!refreshToken) {
     return res.status(401).json({ message: "Refresh Token fehlt" });
@@ -205,6 +213,7 @@ router.post("/refresh", async (req, res) => {
 
 // Logout: Refresh Token revoken + Cookies löschen
 router.post("/logout", async (req, res) => {
+  // Widerruft vorhandenes Refresh-Token und löscht alle Auth-Cookies sofort.
   const refreshToken = String(req.cookies?.[REFRESH_COOKIE] || "").trim();
   if (refreshToken) {
     try {
@@ -221,6 +230,7 @@ router.post("/logout", async (req, res) => {
 
 // Aktuelle Session prüfen
 router.get("/session/me", authenticate, async (req, res) => {
+  // Liefert eingeloggten Benutzer aus JWT-Kontext und validiert Existenz in Datenbank.
   try {
     const userId = String(req.auth?.userId || "").trim();
     const [rows] = await db.execute(
@@ -250,6 +260,7 @@ router.get("/session/me", authenticate, async (req, res) => {
 
 // Registriert neuen Benutzer
 router.post("/signup", async (req, res) => {
+  // Validiert Eingaben, hasht Passwort und legt neuen Benutzer in Datenbank an.
   const { username, email, password } = req.body;
 
   if (!username || !email || !password) {
@@ -304,6 +315,7 @@ router.post("/signup", async (req, res) => {
 
 // Ruft Profildaten ab (aus Auth-Session)
 router.post("/profile", authenticate, async (req, res) => {
+  // Liest Profildaten ausschließlich für aktuell authentifizierten Benutzer aus.
   const userId = String(req.auth?.userId || "").trim();
 
   try {
@@ -333,6 +345,7 @@ router.post("/profile", authenticate, async (req, res) => {
 
 // Aktualisiert Profildaten (Username, Email, Passwort)
 router.post("/profile/update", authenticate, async (req, res) => {
+  // Aktualisiert Profilfelder des eingeloggten Benutzers, optional mit neuem Passwort-Hash.
   const { username, email, neuesPassword } = req.body;
   const userId = String(req.auth?.userId || "").trim();
 
@@ -368,6 +381,7 @@ router.post("/profile/update", authenticate, async (req, res) => {
 
 // Löscht Benutzerkonto
 router.post("/profile/delete", authenticate, async (req, res) => {
+  // Löscht authentifiziertes Benutzerkonto und invalidiert verbleibende Session-Cookies direkt.
   const userId = String(req.auth?.userId || "").trim();
 
   try {

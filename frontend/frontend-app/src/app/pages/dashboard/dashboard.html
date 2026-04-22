@@ -58,7 +58,7 @@
           (cdkDropListDropped)="drop($event)"
         >
           @for (task of todoTasks(); track task.task_id) {
-            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
+            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)" (cdkDragEnded)="dragEnded($event)">
               <app-task-card [task]="task" [lockedBy]="taskLocks().get(task.task_id) || null"></app-task-card>
             </div>
           } @empty {
@@ -80,7 +80,7 @@
           (cdkDropListDropped)="drop($event)"
         >
           @for (task of inProgressTasks(); track task.task_id) {
-            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
+            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)" (cdkDragEnded)="dragEnded($event)">
               <app-task-card [task]="task" [lockedBy]="taskLocks().get(task.task_id) || null"></app-task-card>
             </div>
           } @empty {
@@ -102,7 +102,7 @@
           (cdkDropListDropped)="drop($event)"
         >
           @for (task of doneTasks(); track task.task_id) {
-            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
+            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)" (cdkDragEnded)="dragEnded($event)">
               <app-task-card [task]="task" [lockedBy]="taskLocks().get(task.task_id) || null"></app-task-card>
             </div>
           } @empty {
@@ -124,7 +124,7 @@
           (cdkDropListDropped)="drop($event)"
         >
           @for (task of blockedTasks(); track task.task_id) {
-            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)">
+            <div cdkDrag [cdkDragData]="task" (cdkDragStarted)="dragStarted($event)" (cdkDragEnded)="dragEnded($event)">
               <app-task-card [task]="task" [lockedBy]="taskLocks().get(task.task_id) || null"></app-task-card>
             </div>
           } @empty {

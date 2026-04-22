@@ -11,6 +11,7 @@ const router = express.Router();
 
 // Schneller Health-Check für Reverse-Proxy-/API-Tests
 router.get('/test', (req, res) => {
+    // Liefert leichte Verfügbarkeitsantwort mit Hostname und Zeitstempel für Monitoring.
     res.status(200).json({ 
         message: 'aufruf war erfolgreich',
         server: os.hostname(),

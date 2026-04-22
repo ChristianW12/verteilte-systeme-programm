@@ -5,6 +5,7 @@ import { catchError, map, of, switchMap } from 'rxjs';
 import { getSessionStorage } from './utils/storage';
 
 function clearUiSessionCache(storage: Storage | null): void {
+  // Entfernt lokale UI-Cache-Werte, damit keine veralteten Benutzerdaten angezeigt werden.
   storage?.removeItem('userId');
   storage?.removeItem('userEmail');
   storage?.removeItem('isLoggedIn');
@@ -12,6 +13,7 @@ function clearUiSessionCache(storage: Storage | null): void {
 }
 
 export const authGuard: CanActivateFn = (_route, state) => {
+  // Validiert Session über API und erneuert bei Bedarf automatisch per Refresh-Endpoint.
   const router = inject(Router);
   const http = inject(HttpClient);
   const storage = getSessionStorage();
