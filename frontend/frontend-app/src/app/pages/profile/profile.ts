@@ -68,11 +68,11 @@ export class Profile implements OnInit {
     storage?.removeItem('isLoggedIn');
     storage?.removeItem('userId');
     storage?.removeItem('userEmail');
+    storage?.removeItem('passwordHash');
 
     alert('Erfolgreich ausgeloggt');
     this.router.navigate(['/home']);
   }
 
 }
-
 

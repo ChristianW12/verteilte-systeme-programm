@@ -152,6 +152,7 @@ export class EditProfile implements OnInit {
           storage?.removeItem('isLoggedIn');
           storage?.removeItem('userId');
           storage?.removeItem('userEmail');
+          storage?.removeItem('passwordHash');
           setTimeout(() => {
             this.router.navigate(['/login']);
           }, 1000);
@@ -164,4 +165,3 @@ export class EditProfile implements OnInit {
   }
 
 }
-

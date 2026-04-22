@@ -19,6 +19,7 @@
 
 ### routes/auth.routes.js
 - `POST /login`: Authentifizierung mit E-Mail/Passwort
+- `POST /session/validate`: Validiert `userId` + `passwordHash` gegen DB-Stand
 - `POST /signup`: Benutzer-Registrierung
 - `POST /profile`: Profildaten abrufen
 - `POST /profile/update`: Username, Email, Passwort ändern
@@ -97,7 +98,8 @@ Backend → Redis Pub/Sub → WebSocket Server → Broadcast an alle Clients
 - HTTP 423 wenn von anderem User gesperrt
 
 ### Session-Management
-- **Frontend-seitig**: localStorage speichert userId + email
+- **Frontend-seitig**: sessionStorage speichert `isLoggedIn`, `userId`, `userEmail`, `passwordHash`
+- **Route-Guard**: `auth.guard.ts` validiert Session per `/api/auth/session/validate`
 - **Kein JWT**: Einfache Session-Verwaltung für Demo
 - Keine Token-Validierung pro Request
 
@@ -131,8 +133,8 @@ Backend → Redis Pub/Sub → WebSocket Server → Broadcast an alle Clients
 
 ## TODOs / Sicherheitshinweise
 
-⚠️ **Passwort-Handling**: Alle Passwörter sind unverschlüsselt (use bcrypt)  
-⚠️ **JWT**: Keine Token-Authentifizierung, nur localStorage  
+⚠️ **Session-Hardening**: Frontend-Session wird im Guard serverseitig validiert, aber viele API-Endpunkte vertrauen weiterhin `user_id` aus dem Request  
+⚠️ **JWT**: Keine Token-Authentifizierung, nur sessionStorage  
 ⚠️ **Duplikat-Check**: Profile/update prüft nicht auf Email-Duplikate  
 ⚠️ **Input-Validierung**: Könnte erweitert werden (SQL Injection ist aber durch Prepared Statements geschützt)
 

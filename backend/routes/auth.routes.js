@@ -47,11 +47,49 @@ router.post("/login", async (req, res) => {
       user: {
         id: userId,
         email: userEmail,
+        passwordHash: user.password,
       },
     });
   } catch (error) {
     console.error("Login-Fehler im Backend:", error);
     res.status(500).json({ message: "Interner Serverfehler" });
+  }
+});
+
+// Validiert Session-Daten aus dem Frontend gegen DB-Stand
+router.post("/session/validate", async (req, res) => {
+  const userId = String(req.body?.userId || "").trim();
+  const passwordHash = String(req.body?.passwordHash || "").trim();
+
+  if (!userId || !passwordHash) {
+    return res.status(400).json({ valid: false, message: "userId und passwordHash sind erforderlich" });
+  }
+
+  try {
+    const [rows] = await db.execute(
+      "SELECT user_id, email, password FROM users WHERE user_id = ?",
+      [userId],
+    );
+
+    if (rows.length === 0) {
+      return res.status(401).json({ valid: false, message: "Session ungueltig" });
+    }
+
+    const user = rows[0];
+    if (String(user.password) !== passwordHash) {
+      return res.status(401).json({ valid: false, message: "Session ungueltig" });
+    }
+
+    return res.json({
+      valid: true,
+      user: {
+        id: user.user_id,
+        email: user.email,
+      },
+    });
+  } catch (error) {
+    console.error("Session-Validierung fehlgeschlagen:", error);
+    return res.status(500).json({ valid: false, message: "Interner Serverfehler" });
   }
 });
 
