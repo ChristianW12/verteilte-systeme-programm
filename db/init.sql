@@ -62,18 +62,7 @@ CREATE TABLE tasks (
     FOREIGN KEY (created_by) REFERENCES users(user_id) ON DELETE SET NULL
 );
 
--- 5. Kommentare
-CREATE TABLE comments (
-    comment_id INT AUTO_INCREMENT PRIMARY KEY,
-    task_id INT NOT NULL,
-    user_id VARCHAR(64) NOT NULL,
-    comment_text TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (task_id) REFERENCES tasks(task_id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-);
-
--- 6. Projektmitglieder
+-- 5. Projektmitglieder
 CREATE TABLE project_members (
     member_id INT AUTO_INCREMENT PRIMARY KEY,
     project_id INT NOT NULL,
@@ -84,6 +73,22 @@ CREATE TABLE project_members (
     FOREIGN KEY (project_id) REFERENCES projects(project_id) ON DELETE CASCADE,
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
+
+-- 6. PL/SQL Trigger
+-- Wenn ein Benutzer aus einem Projekt entfernt wird,
+-- werden alle Aufgaben, die diesem Benutzer in diesem Projekt zugewiesen sind,
+-- auf "unassigned" gesetzt.
+DELIMITER //
+CREATE TRIGGER set_tasks_unassigned_on_member_delete
+AFTER DELETE ON project_members
+FOR EACH ROW
+BEGIN
+    UPDATE tasks
+    SET assigned_to = NULL
+    WHERE project_id = OLD.project_id
+      AND assigned_to = OLD.user_id;
+END//
+DELIMITER ;
 
 -- Seed-User (4 Benutzer, gehashte Passwoerter)
 INSERT INTO users (user_id, username, email, password) VALUES
