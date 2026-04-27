@@ -18,7 +18,7 @@ flowchart TD
     end
 
     subgraph Data ["Daten-Ebene"]
-        DB[(PostgreSQL DB)]
+        DB[(MariaDB)]
         Redis[[Redis Locks & Pub/Sub]]
     end
 
